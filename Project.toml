@@ -1,0 +1,23 @@
+name = "FlowResearch"
+uuid = "c3b0e319-9adc-42b8-9d97-8fb2cc03030b"
+authors = ["Michael Reed <18372368+chakravala@users.noreply.github.com>"]
+version = "0.1.0"
+
+[deps]
+Requires = "ae029012-a4dd-5104-9daa-d747884805df"
+Cartan = "e24af43f-9fd5-4672-9264-a75f3ae40eb2"
+Grassmann = "4df31cd9-4c27-5bea-88d0-e6a7146666d8"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+
+[compat]
+julia = "1"
+Requires = "1"
+Grassmann = "0.8"
+Cartan = "0.4"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
