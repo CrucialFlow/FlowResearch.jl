@@ -31,6 +31,7 @@ pt,pe = initmesh(circleg,"hmax"=>0.1)
 A,M = assemble(pt,1,1,0)
 La,Xi = geneigsolve((A,M),5,:SR;krylovdim=60) # maxiter=100
 Ξ = TensorField.(Ref(pt),Xi)
+Ξ2 = TensorField.(graphbundle.(Ξ),fiber.(Ξ))
 
 g,pt,pe = refinemesh(Rectg(0,0,1,1),"hmax"=>0.25)
 tf = solvepoisson(pt,pe,1,f,0)
@@ -66,7 +67,75 @@ end
 cn = solvewave(pt,0.1sin(4π*WingWaveBC(pe)))
 variation(cn,0.01,mesh,mesh!)
 
+# Chapter 6
+
+function Arnoldi(A,q,m)
+    n = size(A)[1]
+    Q = zeros(n,m+1)
+    H = zeros(m+1,m)
+    Q[:,1] = q/norm(q)
+    for i ∈ 1:m
+        z = A*Q[:,j]
+        for i ∈ 1:j
+            Qi = Q[:,i]
+            Hij = z⋅Qi
+            H[i,j] = Hij
+            z -= Hij*Qi
+        end
+        Hj1j = norm(z)
+        H[j+1,j] = Hj1j
+        iszero(Hj1j) && break
+        Q[:,j+1] = z/Hj1j
+    end
+    return Q,H
+end
+
+function Richardson(A,x,b,maxit,α)
+    for k ∈ 1:maxit
+        x += α*(b-A*x)
+    end
+    return x
+end
+'
+function TwoGrid(n=25)
+    nf = 2*n-1 # number of fine nodes
+    nc = Int((nf-1)/2) # coarse nodes
+    h = 1/(nf+1)
+    x = 0:h:1 # mesh
+    A1 = -ones(nf-1)
+    A = spdiagm(-1=>A1,0=>2ones(nf),-1=>A1) # fine stiffness matrix
+    b = ones(nf)*h # load vector
+    u = zeros(nf) # solution guess
+    P = spzeros(nf,nc) # prolongation matrix
+    for i ∈ 1:nc
+        P[2i-1,i] = 0.5
+        P[2i,i] = 1
+        P[2i+1,i] = 0.5
+    end
+    R = P'/2 # prolongation matrix
+    RAP = R*A*P # coarse stiffness matrix
+    for k ∈ Values(1,2,3,4,5)
+        u = Richardson(A,u,b,4,0.25h)
+        r = R*(b-A*u) # residual
+        e = RAP\r # correction
+        u += P*e # solution update
+    end
+end
+
 # Chapter 8
+
+pt,pe = initmesh(squareg)
+pt2 = LagrangeP2(pt)
+A = assemblestiffnessP2(pt)
+
+# interpCR
+pt,pe = initmesh(Rectg(0,0,1,1),"hmax"=>0.25)
+crfun(x) = 1+2sin(3x[2])
+ed = edges(pt)
+ei = edgesindices(pt,FaceBundle(ed))
+iCR = Cartan.interpCR(pt,ed,crfun.(ei))
+surface(iCR/5)
+wireframe!(pt)
 
 # Chapter 9
 
@@ -101,6 +170,26 @@ function κ(z)
     end
 end
 tf2 = solvetransportdiffusion(gtf,κ.(gtf(immersion(pe))),0.01,0.1,x->(sqrt((x[2]-0.5)^2+x[3]^2)<0.7 ? 1.0 : 0.0))
+
+# combine Poisson + transport diffusion, GLS Galerkin Least Squares stabilized
+
+linesegments(p(edges(pt)))
+
+function κ(z)
+    x = base(z)
+    if x[2]<-1.49 || sqrt((x[2]-0.5)^2+x[3]^2)<0.51
+        1e6
+    elseif x[2]>3.49
+        fiber(z)[1]
+    else
+        0.0
+    end
+end
+tf2 = solvetransportdiffusion(gtf,κ.(gtf(e)),0.01,1/150,x->(sqrt((x[2]-0.5)^2+x[3]^2)<0.7 ? 1.0 : 0.0))
+
+streamplot(-gradient(laplacian(tf)),-0.5..3.0,-0.3..0.3)
+lines!(NACA"2414")
+streamplot(gtf,-0.3..1.3,-0.2..0.2)
 
 # Chapter 11
 
@@ -192,104 +281,4 @@ forse = interp(discontinuous(force.(FaceBundle(pt))))
 solvepoissonDIPG(forse,-1,9) # α = SIPG parameter, β = penalty parameter
 #dpt = discontinuous(pt)
 #forse = interp(discontinuous(means(force.(pt))))
-
-pt,pe = initmesh(Rectg(0,0,1,1),"hmax"=>0.25)
-crfun(x) = 1+2sin(3x[2])
-ed = edges(pt)
-ei = edgesindices(pt,FaceBundle(ed))
-iCR = Cartan.interpCR(pt,ed,crfun.(ei))
-surface(iCR/5)
-wireframe!(pt)
-
-# extra
-
-
-# mesh init
-decsg(NACA"2414")
-pt,pe = initmesh(decsg(NACA"2414"),"hmax"=>0.1)
-linesegments(p(edges(pt)))
-
-# poisson
-tf = solvepoisson(pt,pe,1,0,x->(x[2]>3.49 ? 1e6 : 0.0),0,x->(x[2]<-1.49 ? 1.0 : 0.0))
-gtf = -gradient(tf)
-
-# transport diffusion, GLS Galerkin Least Squares stabilized
-function κ(z)
-    x = base(z)
-    if x[2]<-1.49 || sqrt((x[2]-0.5)^2+x[3]^2)<0.51
-        1e6
-    elseif x[2]>3.49
-        fiber(z)[1]
-    else
-        0.0
-    end
-end
-tf2 = solvetransportdiffusion(gtf,κ.(gtf(e)),0.01,1/150,x->(sqrt((x[2]-0.5)^2+x[3]^2)<0.7 ? 1.0 : 0.0))
-
-
-streamplot(-gradient(laplacian(tf)),-0.5..3.0,-0.3..0.3)
-lines!(NACA"2414")
-streamplot(gtf,-0.3..1.3,-0.2..0.2)
-
-# Chapter 6
-
-function Arnoldi(A,q,m)
-    n = size(A)[1]
-    Q = zeros(n,m+1)
-    H = zeros(m+1,m)
-    Q[:,1] = q/norm(q)
-    for i ∈ 1:m
-        z = A*Q[:,j]
-        for i ∈ 1:j
-            Qi = Q[:,i]
-            Hij = z⋅Qi
-            H[i,j] = Hij
-            z -= Hij*Qi
-        end
-        Hj1j = norm(z)
-        H[j+1,j] = Hj1j
-        iszero(Hj1j) && break
-        Q[:,j+1] = z/Hj1j
-    end
-    return Q,H
-end
-
-function Richardson(A,x,b,maxit,α)
-    for k ∈ 1:maxit
-        x += α*(b-A*x)
-    end
-    return x
-end
-'
-function TwoGrid(n=25)
-    nf = 2*n-1 # number of fine nodes
-    nc = Int((nf-1)/2) # coarse nodes
-    h = 1/(nf+1)
-    x = 0:h:1 # mesh
-    A1 = -ones(nf-1)
-    A = spdiagm(-1=>A1,0=>2ones(nf),-1=>A1) # fine stiffness matrix
-    b = ones(nf)*h # load vector
-    u = zeros(nf) # solution guess
-    P = spzeros(nf,nc) # prolongation matrix
-    for i ∈ 1:nc
-        P[2i-1,i] = 0.5
-        P[2i,i] = 1
-        P[2i+1,i] = 0.5
-    end
-    R = P'/2 # prolongation matrix
-    RAP = R*A*P # coarse stiffness matrix
-    for k ∈ Values(1,2,3,4,5)
-        u = Richardson(A,u,b,4,0.25h)
-        r = R*(b-A*u) # residual
-        e = RAP\r # correction
-        u += P*e # solution update
-    end
-end
-
-# Chapter 8
-
-pt,pe = initmesh(squareg)
-pt2 = LagrangeP2(pt)
-A = assemblestiffnessP2(pt)
-
 
