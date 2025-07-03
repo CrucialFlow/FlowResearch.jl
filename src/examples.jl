@@ -141,3 +141,10 @@ helix(t) = Chain(cos(t),sin(t),t)
 cartesianleaf(t) = Chain(x^3-4x,x^2-4)
 neilparabola(t) = Chain(x^3,x^2)
 
+
+# conlon 4.5.16
+
+f(x) = (1-x[1]^2-x[2]^2)*exp(x[3])
+set = fol.(OpenParameter(-1.5:0.1:1.5,-1.5:0.1:1.5,0:0.1:2))
+contour(set)
+
