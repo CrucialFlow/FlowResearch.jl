@@ -1,20 +1,3 @@
-# quarter circle
--1/sqrt(2):0.01:1/sqrt(2) → (t->Chain.(t,sqrt(1-t^2)))
-π/4:0.01:3π/4 → (t->Chain.(cos(t),sin(t)))
-
-# full circle
-0:0.01:2π → (t->Chain.(cos(t),sin(t)))
-
-# helix
-0:0.01:2π → (t->Chain.(cos(t),sin(t),t))
-
-# cartesian leaf
--π:0.01:π → (t->Chain.(t^3-4t,t^2-4))
-
-# cartesian leaf derivative
-tangent(-π:0.01:π → (t->Chain.(t^3-4t,t^2-4)))
--π:0.01:π → (t->Chain.(3t^2-4,2t))
-
 
 # parametric
 θ = LinRange(0, pi, 30)
@@ -40,6 +23,8 @@ kurv = Real(abs(det(gradient(arr/abs(arr)))));
 
 mesh(WIG → kurv)
 
+# Klein
+
 klein(x) = klein(x[1],x[2]/2)
 function klein(v,u)
     x = cos(u)*(-2/15)*(3cos(v)-30sin(u)+90sin(u)*cos(u)^4-60sin(u)*cos(u)^6+5cos(u)*cos(v)*sin(u))
@@ -48,6 +33,7 @@ function klein(v,u)
     Chain(x,y,z)
 end
 
+# Hopf
 
 proj(x) = Chain(x[2],x[3],x[4])/Real(abs(x))
 stereo(x) = Chain(x[2],x[3],x[4])/(1-x[1])
@@ -61,7 +47,6 @@ end
 
 hs = stereo.(hopf.(HopfParameter()));
 hp = proj.(hopf.(HopfParameter()));
-
 
 hopfstereo(x) = stereo(hopf(x))
 hopfproj(x) = proj(hopf(x))
@@ -80,14 +65,17 @@ HopfParameter(n::Values{3,Int}) = TensorField(GridFrameBundle(PointArray((LinRan
 
 circle2(x) = Chain(cos(3x[1]),sin(2x[1]))
 f(x) = sin(x[1]/2)*sin(x[2])
+vf(x) = Chain(cos(x[1])*cos(x[2]),sin(x[2])*sin(x[1]))
 
-cf = cf.(100OpenParameter(100,100))
-tf = f.(100OpenParameter(100,100))
-gtf = gradient(tf)
+cf = circle2.(TorusParameter(100,100));
+tf = f.(TorusParameter(100,100));
+gtf = gradient(tf);
+vft = vf.(TorusParameter(100,100));
 
 𝓛[cf,gtf]
 Lie[gtf,vft,cf]
 𝓛[cf,gtf,vft]
+streamplot(𝓛[cf,gtf,vft])
 
 # Video
 
@@ -125,26 +113,28 @@ x0 = Chain(10.0,10.0,10.0)
 Lorenz(σ,r,b) = x -> Chain(σ*(x[2]-x[1]), x[1]*(r-x[3])-x[2], x[1]*x[2]-b*x[3])
 sol = odesolve(Lorenz(10.0,60.0,8/3),Chain(10.0,10.0,10.0),2π,15,3,4)
 
-#
+# my implementation
+using Grassmann, Cartan, Adapode
 
-start0(x) = Chain(cos(x),sin(x),sin(3x))
-start1(x) = Chain(cos(x)+0.1sin(5x),sin(x)+0.1cos(5x),0.3sin(3x))
+# plotting software (optional)
+using Makie, GLMakie
 
-darios(t,dt=tangent(fiber(t))) = ⋆(dt∧tangent(dt))
+sphere(x) = Chain(cos(x[2])*sin(x[1]), sin(x[2])*sin(x[1]), cos(x[1]))
 
-sol1 = odesolve(darios,x1,1.0,11)
+# assign sphere with 60 by 60 points
+sph = sphere.(SphereParameter(60,60));
+sphmet = surfacemetric(sph);
+coef = secondkind(sphmet);
 
-# curves
+# initial conditions
+x0 = Chain(1.0,1.0)
+v0 = Chain(1.0,1.0)
+sol = geosolve(coef,x0,v0,2π,15,1,4);
 
-circle(t) = Chain(cos(t),sin(t))
-helix(t) = Chain(cos(t),sin(t),t)
-cartesianleaf(t) = Chain(x^3-4x,x^2-4)
-neilparabola(t) = Chain(x^3,x^2)
+geosphere(x) = Chain(cos(x[2])*cos(x[1]), cos(x[2])*sin(x[1]), sin(x[2]))
 
+# alternatively, compute coefficients explicitly:
+sphcoef(x) = TensorOperator(Chain(Chain(Chain(-sin(x[1])*cos(x[1]),0),Chain(0,cot(x[1]))),Chain(Chain(0,cot(x[1])),Chain(0,0))))
+coef = sphcoef.(SphereParameter(60,60))
 
-# conlon 4.5.16
-
-f(x) = (1-x[1]^2-x[2]^2)*exp(x[3])
-set = fol.(OpenParameter(-1.5:0.1:1.5,-1.5:0.1:1.5,0:0.1:2))
-contour(set)
-
+halfplane(x) = TensorOperator(Chain(Chain(Chain(0.0,inv(x[2])),Chain(-inv(x[2]),0.0)),Chain(Chain(-inv(x[2]),0.0),Chain(0.0,-inv(x[2])))))

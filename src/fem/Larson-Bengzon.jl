@@ -1,3 +1,5 @@
+# github.com/chakravala
+# FEM: Finite Element Method, Bengzon-Larson
 
 # Chapter 1
 pt,pe = initmesh(0:1/5:1)
