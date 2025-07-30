@@ -1,5 +1,4 @@
 # github.com/chakravala
-# DGA: Differential Geometry, Pinkall-Gross
 
 # 1.4 (i) quarter circle
 

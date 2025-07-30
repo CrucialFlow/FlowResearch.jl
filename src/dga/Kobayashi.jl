@@ -1,6 +1,4 @@
 # github.com/chakravala
-# DGA: Differential Geometry of Curves and Surfaces, Kobayashi
-
 
 # Example 2.1.1 Sphere
 

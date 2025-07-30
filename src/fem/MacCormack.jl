@@ -1,5 +1,4 @@
 # github.com/chakravala
-# FEM: Numerical Computation of Compressible and Viscous Flow, MacCormack
 
 # Chapter 5
 
