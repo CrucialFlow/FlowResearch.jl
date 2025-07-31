@@ -71,6 +71,47 @@ end
 
 solve_position(m=1,F0=1,ω=3,x0=0,v0=0.05)
 
+# fofx.m
 
+function fofx(;m=1,k=0.01,x0=0,v0=0.5)
+    m # mass
+    k # spring constant
+    ω = sqrt(k/m) # natural frequency
+    x0 # initial position
+    v0 # initial velocity
+    t = TensorField(0:0.05:2π/ω)
+    E0 = (m/2)*v0^2 # total initial energy
+    x = sqrt(2*E0/k)*sin(ω*t) # position vs time
+    v = v0*cos(ω*t) # velocity vs time
+    # a = (-k/m)*x # acceleration vs time
+    PE = (k/2)*x^2 # potential energy
+    KE = (m/2)*v^2 # kinetic energy
+    E = PE + KE
+    F = -k*x # force
+    display(lines(Chain.(x,PE)))
+    lines!(Chain.(x,KE))
+    lines!(Chain.(x,E))
+    lines!(Chain.(x,F))
+end
 
+# fofv.m
 
+function fofv(;g=9.8,m=1,C=0.05,y0=10,v0=20,NPTS=100,tmax=4.5)
+    g # gravity
+    m # mass
+    C # drag coefficient
+    C < 1e-3 && (C=1e-3)
+    y0 # initial height
+    v0 # initial velocity
+    NPTS # number of  points
+    tmax
+    tz = v0/g + sqrt((v0/g)^2+2*y0/g)
+    f(x) = y0-m*(g*t+(m*g/C+v0)*(exp(-C*t/m)-1))/C
+    t = TensorField(0:tmax/NPTS:tmax)
+    y = y0-m*(g*t+(m*g/C+v0)*(exp(-C*t/m)-1))/C
+    v = (m*g/C+v0)*exp(-C*t/m)-m*g/C
+    a = -g-C*v/m
+    display(lines(y))
+    lines!(v)
+    lines!(a)
+end
