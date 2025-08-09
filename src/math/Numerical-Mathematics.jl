@@ -277,7 +277,9 @@ wireframe(revolve(mycirc))
 t = TorusParameter(60)
 c(u) = 2Chain(cos(u[1]),sin(u[1]),0)
 r(u) = Chain(cos(u[1]/2)*cos(u[1]),cos(u[1]/2)*sin(u[1]),sin(u[1]/2))
-wireframe(ruledsurface(c.(t),r.(t)))
+mobi = MobiusTopology(ruledsurface(c.(t),r.(t)))
+mesh(mobi,normalnorm)
+wireframe!(mobi)
 
 # asphere
 
@@ -341,19 +343,8 @@ fun(x) = Chain(x[1]^4*exp(x[2]),exp(x[1])*cos(x[2]),sin(x[1])+x[2]^2*x[3])
 
 integrate(∂(fun.(XYZ)))
 
-F1 = Cartan.leaf(fun.(XYZ),1,1)
-F2 = Cartan.leaf(fun.(XYZ),101,1)
-F3 = Cartan.leaf(fun.(XYZ),1,2)
-F4 = Cartan.leaf(fun.(XYZ),101,2)
-F5 = Cartan.leaf(fun.(XYZ),1,3)
-F6 = Cartan.leaf(fun.(XYZ),101,3)
-
-X1 = Cartan.leaf(XYZ,1,1)
-X2 = Cartan.leaf(XYZ,101,1)
-X3 = Cartan.leaf(XYZ,1,2)
-X4 = Cartan.leaf(XYZ,101,2)
-X5 = Cartan.leaf(XYZ,1,3)
-X6 = Cartan.leaf(XYZ,101,3)
+boundarycomponents(fun.(XYZ))
+boundarycomponents(XYZ)
 
 #fluxintegrate(X1,F1)
 

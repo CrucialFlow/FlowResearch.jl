@@ -138,3 +138,18 @@ sphcoef(x) = TensorOperator(Chain(Chain(Chain(-sin(x[1])*cos(x[1]),0),Chain(0,co
 coef = sphcoef.(SphereParameter(60,60))
 
 halfplane(x) = TensorOperator(Chain(Chain(Chain(0.0,inv(x[2])),Chain(-inv(x[2]),0.0)),Chain(Chain(-inv(x[2]),0.0),Chain(0.0,-inv(x[2])))))
+
+# other
+
+fun(x) = Chain(x[1]^4*exp(x[2]),exp(x[1])*cos(x[2]),sin(x[1])+x[2]^2*x[3])
+wireframe(fun.(unitball()))
+streamplot(fun.(unitball()),gridsize=(11,11,11))
+
+wireframe(revolve(unitdisk()+Chain(sqrt(2),0)))
+
+# bugs
+
+lines(ClampedTopology(unitcircle()))
+lines(tangent(ClampedTopology(unitcircle())))
+lines(tangent(tangent(ClampedTopology(unitcircle()))))
+
