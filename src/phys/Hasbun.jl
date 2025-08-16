@@ -5,7 +5,7 @@
 
 # ho1.m
 
-function init_mass_spring(;tmax=1,k=1000,m=5,C=0,E=0,ω=0,x0=0.1,v0=0)
+function init_mass_spring(;tmax=1,k=1000,m=5,C=0,E=0,ω=0,x0=0.1,v0=0,t0=0)
     k # 1000 # spring constant
     m # 5.0 # bob mass
     C # 0.0 # damping coefficient
@@ -13,22 +13,22 @@ function init_mass_spring(;tmax=1,k=1000,m=5,C=0,E=0,ω=0,x0=0.1,v0=0)
     ω # 0.0 # driving force frequency
     x0 # 0.1 # initial position
     v0 # 0.0 # initial velocity
-    t0 = 0.0 # initial time
+    t0 # 0.0 # initial time
     F0 = -k*x0-C*v0+E*sin(ω*t0) # initial force
     a0 = F0/m # initial acceleration
     InitialCondition(mass_spring(k,C,F0,ω,m),t0↦Chain(x0,v0),tmax)
 end
 
 mass_spring(k,C,F0,ω,m) = x -> Chain(x[2],(F0*sin(ω*point(x))-k*x[1]-C*x[2])/m)
-function solve_mass_spring(;n=100,tmax=1,k=1000,m=5,C=0,E=0,ω=0,x0=0.1,v0=0)
-    ic = init_mass_spring(;tmax,k,m,C,E,ω,x0,v0)
+function solve_mass_spring(;n=100,tmax=1,k=1000,m=5,C=0,E=0,ω=0,x0=0.1,v0=0,t0=0)
+    ic = init_mass_spring(;tmax,k,m,C,E,ω,x0,v0,t0)
     getindex.(odesolve(ic,ExplicitIntegrator{4}(tmax/n)),1)
 end
 
-solve_mass_spring(n=100,tmax=1,k=1000,m=5,C=0,E=0,ω=0,x0=0.1,v0=0)
-solve_mass_spring(n=100,tmax=10,k=1,m=1,C=0,E=0,ω=0,x0=1,v0=0)
-solve_mass_spring(n=200,tmax=20,k=1,m=1,C=0.5,E=0,ω=0,x0=1,v0=0)
-solve_mass_spring(n=200,tmax=20,k=1,m=1,C=0.5,E=0.1,ω=0.8,x0=1,v0=0)
+solve_mass_spring(n=100,tmax=1,k=1000,m=5,C=0,E=0,ω=0,x0=0.1,v0=0,t0=0)
+solve_mass_spring(n=100,tmax=10,k=1,m=1,C=0,E=0,ω=0,x0=1,v0=0,t0=0)
+solve_mass_spring(n=200,tmax=20,k=1,m=1,C=0.5,E=0,ω=0,x0=1,v0=0,t0=0)
+solve_mass_spring(n=200,tmax=20,k=1,m=1,C=0.5,E=0.1,ω=0.8,x0=1,v0=0,t0=0)
 
 # ho2.m
 
@@ -115,3 +115,191 @@ function fofv(;g=9.8,m=1,C=0.05,y0=10,v0=20,NPTS=100,tmax=4.5)
     lines!(v)
     lines!(a)
 end
+
+# Chapter 3
+
+# xoft.m
+
+function xoft(;n=100,τ=2,r=2)
+    n # number of points
+    τ # period
+    r # radius
+    t = TensorField(0:2/n:2τ)
+    x = r*cos(2π*t/τ)
+end
+
+lines(xoft(n=100,τ=2,r=2))
+
+# Example 3.1
+
+lines(tangent(xoft(n=100,τ=2,r=2)))
+
+# Example 3.2
+
+function v_and_f(;xb=3/2,vmin=-4/27,xmin=0.5,n=100)
+    xmax = 5xb
+    x = TensorField(xmin:2/n:2xmax)
+    V = 1/x^3 - 1/x^2
+    F = 3/x^4 - 2/x^3
+    st = lines(V)
+    fig,ax,plt = st
+    lines!(F)
+    ax.limits = ((1,7),(-0.2,0.2))
+    st
+end
+
+function v_and_f(;xb=3/2,vmin=-4/27,xmin=0.5,n=100)
+    xmax = 5xb
+    x = TensorField(xmin:2/n:2xmax)
+    V = 1/x^3 - 1/x^2
+    F = 3/x^4 - 2/x^3
+    return V,F
+end
+
+lines(bound(V,0.2))
+lines!(bound(F,0.2))
+
+# over_crit_damp
+
+function over_crit_damp(;m=0.05,k=1,c=0.5,x0=1,v0=5,tmax=2,n=100)
+    γ = c/2/m
+    desc = γ^2-k/m
+    desc ≤ 0 && throw("γ needs to be smaller")
+    γ1 = γ+sqrt(desc)
+    γ2 = γ-sqrt(desc)
+    Bo = (v0+γ1*x0)/(γ1-γ2)
+    Ao = x0-Bo
+    Ac = x0
+    Bc = v0+γ*x0
+    t = TensorField(0:tmax/n:tmax) # time
+    xo = Ao*exp(-γ1*t) + Bo*exp(-γ2*t) # overdamped
+    xc = Ac*exp(-γ*t) + Bc*t*exp(-γ*t) # critically damped
+    return (xo,xc)
+end
+
+xo,xc = over_crit_damp(m=0.05,k=1,c=0.5,x0=1,v0=5,tmax=2,n=100)
+lines(xo)
+lines!(xc)
+
+# under_damp
+
+function under_damp(;m=0.05,k=1,c=0.08,x0=1,v0=5,tmax=5,n=100)
+    γ = c/2/m
+    ω0 = sqrt(k/m)
+    desc = ω0^2-γ^2
+    desc ≤ 0 && throw("γ needs to be smaller")
+    ω = sqrt(desc)
+    B = sqrt(x0^2+(v0+γ*x0)^2/ω^2)
+    θ = atan(ω*x0/(v0+γ*x0))
+    t = TensorField(0:tmax/n:tmax)
+    xe = B*exp(-γ*t)
+    x = xe*sin(ω*t+θ)
+end
+
+under_damp(m=0.05,k=1,c=0.08,x0=1,v0=5,tmax=5,n=100)
+
+# dive_amp
+
+function drive_amp(;m=0.5,k=0.5,F0=0.5,ωmin=0.1,ωmax=2,n=200,cmin=0.2)
+    ωo = sqrt(k/m) # SHO natural frequency
+    ω = TensorField(ωmin:ωmax/n:ωmax)
+    cmax = m*ωo*(2/sqrt(2))
+    cstep = (cmax-cmin)/5
+    c = cmin:cstep:cmax
+    for i ∈ 1:length(c) # loop over drag coefficient
+        γ = c[i]/2/m
+        desc = (2γ*ω)^2+(ωo^2-ω^2)^2
+        A = F0/m/sqrt(desc) # driven ho amplitude
+        out = Chain.(ω+0,A)
+        isone(i) ? display(lines(out)) : lines!(out)
+        om_res = sqrt(ωo^2-2γ^2) # resonant frequency
+        Amax = F0/2/m/γ/sqrt(ωo^2-γ^2) # maximum amplitude at om_res
+        scatter!([Chain(om_res,Amax)])
+    end
+end
+
+drive_amp(m=0.5,k=0.5,F0=0.5,ωmin=0.1,ωmax=2,n=200,cmin=0.2)
+
+# drive_phase
+
+function drive_phase(;m=0.5,k=0.5,ωmin=0,n=2.5,cmin=0.01,cmax=1)
+    ωo = sqrt(k/m)
+    ωmax = n*ωo
+    NPTS = Int(round(33n+1))
+    ωstep = (ωmax-ωmin)/NPTS
+    cstep = (cmax-cmin)/5
+    c = cmin:cstep:cmax
+    ω = TensorField(ωmin:ωstep:ωmax)
+    ϕ = Vector{Float64}(undef,length(ω))
+    for k ∈ 1:length(c)
+        γ = c[k]/2/m
+        for i ∈ 1:length(ω)
+            ωi = fiber(ω)[i]
+            den = ωo^2-ωi^2
+            ϕ[i] = ωi≤ωo ? atan((2γ/den)*ωi) : π+atan((2γ/den)*ωi)
+        end
+        out = Chain.(ω+0,TensorField(ω,ϕ))
+        isone(k) ? display(lines(out)) : lines!(out)
+    end
+end
+
+drive_phase(m=0.5,k=0.5,ωmin=0,n=2.5,cmin=0.01,cmax=1)
+
+# drive_sol
+
+function drive_sol(ω,c;x0=1,v0=5,m=0.5,k=0.5,F0=0.5,θ=0,dt=0.05)
+    ωo = sqrt(k/m)
+    τ = 2π/ω
+    tmax = 5τ
+    n = tmax/dt
+    γ = c/2/m
+    desc = (2γ*ω)^2+(ωo^2-ω^2)^2
+    A = F0/m/sqrt(desc)
+    den = ωo^2-ω^2
+    iszero(den) && (den = 1e-3)
+    ϕ = ω≤ωo ? atan((2γ/den)*ω) : π+atan((2γ/den)*ω)
+    δ = θ-ϕ # forced solutions phase
+    t = TensorField(0:tmax/n:tmax)
+    xf = A*cos(ω*t+δ)
+    F = F0*cos(ω*t+θ)
+    # homoegeneous + forced solution
+    desc = ωo-γ^2
+    desc ≤ 0 && throw("γ needs to be smaller")
+    ωu = sqrt(desc)
+    th = atan(ωu*x0/(v0+γ*x0))
+    B = sqrt(x0^2+(v0+γ*x0)^2/ωu^2)
+    xh = B*exp(-γ*t)*sin(ωu*t+th)
+    return xf,F,xf+xh
+end
+
+xf,F,xh = drive_sol(0.1,0.1;x0=1,v0=5,m=0.5,k=0.5,F0=0.5,θ=0,dt=0.05)
+lines(xf)
+lines!(F)
+lines(xh)
+
+# drive_power
+
+function drive_power(;m=0.5,k=0.5,F0=0.5,ωmin=0.01,ωmax=3,n=200,cmin=0.2,cmax=1)
+    ωo = sqrt(k/m)
+    dw = (ωmax-ωmin)/(n-1)
+    cstep = (cmax-cmin)/3
+    c = cmin:cstep:cmax
+    ω = TensorField(ωmin:dw:ωmax)
+    power = Vector{Float64}(undef,n)
+    for k ∈ 1:length(c)
+        γ = c[k]/2/m
+        for i ∈ 1:n
+            ωi = fiber(ω)[i]
+            desc = (2γ*ωi)^2+(ωo^2-ωi^2)^2
+            A = F0/m/sqrt(desc) # driven ho amplitude
+            den = ωo^2-ωi^2
+            iszero(den) && (den = 1e-3)
+            ϕ = ωi≤ωo ? atan((2γ/den)*ωi) : π+atan((2γ/den)*ωi)
+            power[i] = 0.5F0*A*ωi*sin(ϕ)
+        end
+        out = Chain.(ω+0,TensorField(ω,power))
+        isone(k) ? display(lines(out)) : lines!(out)
+    end
+end
+
+

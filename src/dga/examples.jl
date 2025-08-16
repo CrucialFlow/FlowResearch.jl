@@ -153,3 +153,10 @@ lines(ClampedTopology(unitcircle()))
 lines(tangent(ClampedTopology(unitcircle())))
 lines(tangent(tangent(ClampedTopology(unitcircle()))))
 
+
+using Grassmann, Cartan
+using Makie, GLMakie
+fun(x) = Chain(x[1]^4*exp(x[2]),exp(x[1])*cos(x[2]),sin(x[1])+x[2]^2*x[3])
+streamplot(unitball(),fun.(unitball());gridsize=(11,11,11))
+
+
