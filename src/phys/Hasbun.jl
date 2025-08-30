@@ -228,18 +228,18 @@ function drive_phase(;m=0.5,k=0.5,ωmin=0,n=2.5,cmin=0.01,cmax=1)
     NPTS = Int(round(33n+1))
     ωstep = (ωmax-ωmin)/NPTS
     cstep = (cmax-cmin)/5
-    c = cmin:cstep:cmax
-    ω = TensorField(ωmin:ωstep:ωmax)
+    ω = ωmin:ωstep:ωmax
     ϕ = Vector{Float64}(undef,length(ω))
-    for k ∈ 1:length(c)
-        γ = c[k]/2/m
+    for c ∈ cmin:cstep:cmax
+        γ = c/2/m
         for i ∈ 1:length(ω)
-            ωi = fiber(ω)[i]
+            ωi = ω[i]
             den = ωo^2-ωi^2
-            ϕ[i] = ωi≤ωo ? atan((2γ/den)*ωi) : π+atan((2γ/den)*ωi)
+            ϕi = atan((2γ/den)*ωi)
+            ϕ[i] = ωi≤ωo ? ϕi : π+ϕi
         end
-        out = Chain.(ω+0,TensorField(ω,ϕ))
-        isone(k) ? display(lines(out)) : lines!(out)
+        out = TensorField(ω,Chain.(ω,ϕ))
+        c==cmin ? display(lines(out)) : lines!(out)
     end
 end
 
@@ -285,7 +285,7 @@ function drive_power(;m=0.5,k=0.5,F0=0.5,ωmin=0.01,ωmax=3,n=200,cmin=0.2,cmax=
     cstep = (cmax-cmin)/3
     c = cmin:cstep:cmax
     ω = TensorField(ωmin:dw:ωmax)
-    power = Vector{Float64}(undef,n)
+    power = Vector{Float64}(undef,length(ω))
     for k ∈ 1:length(c)
         γ = c[k]/2/m
         for i ∈ 1:n
@@ -297,9 +297,61 @@ function drive_power(;m=0.5,k=0.5,F0=0.5,ωmin=0.01,ωmax=3,n=200,cmin=0.2,cmax=
             ϕ = ωi≤ωo ? atan((2γ/den)*ωi) : π+atan((2γ/den)*ωi)
             power[i] = 0.5F0*A*ωi*sin(ϕ)
         end
-        out = Chain.(ω+0,TensorField(ω,power))
+        out = Chain.(ω,TensorField(ω,power))
         isone(k) ? display(lines(out)) : lines!(out)
     end
 end
+
+drive_power(m=0.5,k=0.5,F0=0.5,ωmin=0.01,ωmax=3,n=200,cmin=0.2,cmax=1)
+
+# Chapter 5
+
+# gradient_ex
+
+function gradient_ex(;vmax=2,vs=0.1,dv=0.1)
+    xmax,ymax,zmax = vmax,vmax,vmax
+    xs,ys,zs = vs,vs,vs
+    N = Int(round(2vmax/vs))
+    dx,dy,dz = dv,dv,dv
+    m = round(N/2+5)
+    zm = -zmax+(m-1)*zs # value of z at which we plot f(x,y,z)
+    x,y,z = -xmax:xs:xmax,-ymax:ys:ymax,-zmax:zs:zmax
+    xyz = TensorField(ProductSpace(x,y,z))
+end
+
+fun(x) = x[1]*exp(-x[1]^2-x[2]^2-x[3]^2)
+f = fun.(gradient_ex(vmax=2,vs=0.1,dv=0.1))
+df = gradient(f)
+dx,dy,dz = getindex.(df,1),getindex.(df,2),getindex.(df,3)
+dxy = Chain.(dx,dy)
+
+streamplot(df)
+surface(leaf(f,0.4,3))
+streamplot(leaf(dxy,0.4,3))
+contour!(leaf(f,0.4,3),levels=-0.3:0.1:0.3)
+
+# divergence_ex
+
+function divergence_ex(;vmax=2,vs=0.1,dv=0.1)
+    xmax,ymax,zmax = vmax,vmax,vmax
+    xs,ys,zs = vs,vs,vs
+    N = Int(round(2vmax/vs))
+    dx,dy,dz = dv,dv,dv
+    m = round(N/2+5)
+    zm = -zmax+(m-1)*zs # value of z at which we plot f(x,y,z)
+    x,y,z = -xmax:xs:xmax,-ymax:ys:ymax,-zmax:zs:zmax
+    xyz = TensorField(ProductSpace(x,y,z))
+end
+
+fun(x) = x[1]*exp(-x[1]^2-x[2]^2-x[3]^2)
+f = fun.(gradient_ex(vmax=2,vs=0.1,dv=0.1))
+df = gradient(f)
+dx,dy,dz = getindex.(df,1),getindex.(df,2),getindex.(df,3)
+dxy = Chain.(dx,dy)
+
+streamplot(df)
+surface(leaf(f,0.4,3))
+streamplot(leaf(dxy,0.4,3))
+contour!(leaf(f,0.4,3),levels=-0.3:0.1:0.3)
 
 

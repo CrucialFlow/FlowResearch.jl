@@ -301,13 +301,13 @@ fluxintegrate(rev,field().(rev))
 # 7.8
 
 t = TensorField(LinRange(0,2π,100))
-f1 = Chain.(1t+0,sin(t),0t+0)
-f2 = Chain.(1t+0,-sin(t),0t+0)
+f1 = Chain.(t,sin(t),0t)
+f2 = Chain.(t,-sin(t),0t)
 wireframe(scrollsurface(f1,f2))
 
 t = TensorField(-1:0.1:1)
-g1 = Chain.(0t+0,1t+0,0t+0)
-g2 = Chain.(t^3-t+1,1t+0,0t+0)
+g1 = Chain.(0t,t,0t)
+g2 = Chain.(t^3-t+1,t,0t)
 wireframe(scrollsurface(g1,g2))
 
 # Green
@@ -327,7 +327,7 @@ t = TensorField(LinRange(0,π,20))
 rev = revolve(2Chain.(sin(t),cos(t)),unitcircle(TensorField(LinRange(-π/2,π/2,100))))
 fun(x) = Chain(exp(x[1]*x[2]),x[2]*x[3]^2,exp(x[1]^2)*x[2])
 t2 = TensorField(LinRange(0,2π,40))
-circ = Chain.(0t2+0,2sin(t2),2cos(t2))
+circ = Chain.(0t2,2sin(t2),2cos(t2))
 
 XYZ = TensorField(ProductSpace(-1:0.01:3,-3:0.03:3,-3:0.03:3))
 streamplot(fun.(XYZ),gridsize=(11,17,17))
