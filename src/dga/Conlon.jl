@@ -15,9 +15,11 @@ k(x,a,b) = h.(b-x)*h.(x-a)
 lines(h.(t))
 lines(k(t,1,4))
 
+l(x,a,b) = integral(k(x,1,4))/integrate(k(x,1,4))
+lines(l(t,1,4))
+
 g(x) = k(x[1])*k(x[2]) # *k(x[i])*...
 
-integral(k(t,1,4))/integrate(k(t,1,4))
 
 # 4.5.16
 

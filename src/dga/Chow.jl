@@ -2,14 +2,17 @@
 
 # Example 1.4
 
-V = Submanifold(2)
-D = TensorField(ProductSpace{V}(LinRange(-π/2,π/2,100),LinRange(-π/2,π/2,100)));
-scherk(x) = (z = cos(x[2])/cos(x[1]); Chain(x[1],x[2],bound(z≤0 ? 0.0 : log(z),π/2)))
-mat = TensorOperator{V,Submanifold(3)}([0 0; π 0; 0 π])
-k1 = TensorField(ProductSpace{Submanifold(2)}(-3:2:3,-3:2:3))
-k2 = TensorField(ProductSpace{Submanifold(2)}(-2:2:2,-2:2:2))
-mesh(Ref(scherk.(D)).+vec(fiber(mat⋅k1)),norm)
-mesh!(Ref(scherk.(D)).+vec(fiber(mat⋅k2)),norm)
+x = LinRange(-pi/2,pi/2,100)
+D = TensorField(ProductSpace{2}(x,x))
+function scherk(x)
+    z = cos(x[2])/cos(x[1])
+    Chain(x[1],x[2],bound(z≤0 ? 0.0 : log(z),π/2))
+end
+mat = TensorOperator{2,3}([π 0; 0 π; 0 0])
+k1 = TensorField(ProductSpace{2}(-3:2:3,-3:2:3))
+k2 = TensorField(ProductSpace{2}(-2:2:2,-2:2:2))
+mesh(Ref(scherk.(D)).+vec(fiber(mat > k1)),norm)
+mesh!(Ref(scherk.(D)).+vec(fiber(mat > k2)),norm)
 
 # Example 1.6
 

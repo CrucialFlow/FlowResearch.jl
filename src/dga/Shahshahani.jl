@@ -6,11 +6,11 @@
 t = TensorField(0:0.1:5)
 α(x) = x[1]>0 ? exp(-1/x[1]) : zero(x[1])
 β(x,a,b) = α.(b-x)*α.(x-a)
-γ = integral(β(t,1,4))/integrate(β(t,1,4))
+γ(x,a,b) = integral(β(x,1,4))/integrate(β(x,1,4))
 
 lines(α.(t))
 lines(β(t,1,4))
-lines(1-γ.(abs(t-1)))
+lines(1-γ(t,1,4).(abs(t-1)))
 
 # Exercise 2.14
 

@@ -6,13 +6,13 @@
 
 # Example 10.1
 
-D = TensorField(ProductSpace(-15:0.1:15,-7:0.1:9))
+D = TensorField(ProductSpace{2}(-15:0.1:15,-7:0.1:9))
 fun(x,ω=sqrt(10),γ=0.3) = Chain(x[2],-ω^2*sin(x[1])-γ*x[2])
 streamplot(fun.(D))
 
 # Example 10.2
 
-D = TensorField(ProductSpace(-9:0.1:11,-40:0.1:30))
+D = TensorField(ProductSpace{2}(-9:0.1:11,-40:0.1:30))
 fun(x,α=0.2,k=4,c=2,m=1) = Chain(x[2],(-k*x[1]+α*x[1]^3-c*x[2])/m)
 streamplot(fun.(D))
 

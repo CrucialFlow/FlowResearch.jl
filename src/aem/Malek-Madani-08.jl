@@ -50,13 +50,13 @@ d4b(x) = Chain(x[2],-0.1x[2]-sin(x[1]))
 d4c(x) = Chain(x[2],-(x[1]^2-1)*x[2]-x[1])
 
 circ = Chain.(0.1cos(t)+π/4,0.1sin(t))
-lines(Flow(d4a,0.2,circ,7))
+lines(Flow(d4a,0.2),circ,7)
 
 circ = Chain.(0.1cos(t)+π/4,0.1sin(t))
-lines(Flow(d4b,0.2,circ,7))
+lines(Flow(d4b,0.2),circ,7)
 
 circ = Chain.(0.1cos(t)+0.5,0.1sin(t))
-lines(Flow(d4c,0.2,circ,7))
+lines(Flow(d4c,0.2),circ,7)
 
 van = d4c.(OpenParameter(-3:0.1:3,-3:0.1:3))
 streamplot!(van)

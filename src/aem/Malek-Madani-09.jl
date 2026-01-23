@@ -68,13 +68,13 @@ initdata = [Chain(-4,sign(j)*sqrt(abs(0.1+0.2j))) for j ∈ -10:10]
 lines(-!gradient(ψ.(D)),initdata,6)
 
 D = TensorField(ProductSpace(-6:0.1:6,-2:0.1:2))
-ic = InitialCondition(-!gradient(ψ.(D)),Chain(-6,1),10)
+ic = InitialCondition(-!gradient(fun.(D)),Chain(-6,1),10)
 sol = odesolve(ic,MultistepIntegrator{4}(2^-7))
 lines(sol)
 lines!(Chain.(getindex.(sol,1)+0,speed(sol)))
 
-fun(x) = -(1-2x[1]^2+2x[2]^2)/(2*(x[1]^2+x[2]^2))^2
-lines(Chain.(getindex.(sol,1)+0,fun.(D)(sol)))
+press(x) = -(1-2x[1]^2+2x[2]^2)/(2*(x[1]^2+x[2]^2))^2
+lines(Chain.(getindex.(sol,1)+0,press.(D)(sol)))
 
 # 9.6
 
