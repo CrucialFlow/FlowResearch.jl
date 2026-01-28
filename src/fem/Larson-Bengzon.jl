@@ -1,4 +1,5 @@
 # github.com/chakravala
+# FEM: Finite Element Method, Larson-Bengzon
 
 # Chapter 1
 pt,pe = initmesh(0:1/5:1)
@@ -32,7 +33,7 @@ pt,pe = initmesh(circleg,"hmax"=>0.1)
 A,M = assemble(pt,1,1,0)
 La,Xi = geneigsolve((A,M),5,:SR;krylovdim=60) # maxiter=100
 Ξ = TensorField.(Ref(pt),Xi)
-Ξ2 = TensorField.(graphbundle.(Ξ),fiber.(Ξ))
+Ξ2 = graphbundle.(Ξ)
 
 g,pt,pe = refinemesh(Rectg(0,0,1,1),"hmax"=>0.25)
 tf = solvepoisson(pt,pe,1,f,0)
@@ -51,10 +52,17 @@ refinemesh!(g,pt,pe,select(η))
 
 pt,pe = initmesh(0:0.01:1)
 triangle(x) = 0.5-abs(0.5-x[2])
+
+
+pt,pe = initmesh(-1:0.01:1)
+affinebox(x) = abs(x[2])<1/2 ? 1.0 : 0.0
 bt = solveheat(triangle.(pt),(x->2x[2]).(pt),(x->1e6).(pe),range(0,0.6,101))
 
 pt,pe = initmesh(Dslitg,"hmax"=>0.02)
 cone(x) = 0.5-sqrt((0.5-x[2])^2+(0.5-x[3])^2)
+
+pt,pe = initmesh("squareg","hmax"=>0.02)
+affinebox(x) = max(abs(x[2]),abs(x[3]))<1/2 ? 1.0 : 0.0
 be = solveheat(cone.(pt),(x->0).(pt),(x->1e6).(pe),range(0,0.6,101))
 
 pt,pe = initmesh(Dslitg,"hmax"=>0.02)
@@ -132,10 +140,12 @@ A = assemblestiffnessP2(pt)
 # interpCR
 pt,pe = initmesh(Rectg(0,0,1,1),"hmax"=>0.25)
 crfun(x) = 1+2sin(3x[2])
-ed = edges(pt)
-ei = edgesindices(pt,FaceBundle(ed))
-iCR = Cartan.interpCR(pt,ed,crfun.(ei))
-surface(iCR/5)
+function my_crouzeix_raviart(pt,crfun)
+    ed = edges(pt)
+    ei = edgesindices(pt,FaceBundle(ed))
+    Cartan.interpCR(pt,ed,crfun.(ei))
+end
+surface(my_crouzeix_raviart(pt,crfun)/5)
 wireframe!(pt)
 
 # Chapter 9
@@ -194,9 +204,9 @@ streamplot(gtf,-0.3..1.3,-0.2..0.2)
 
 # Chapter 11
 
-pt,pe = initmesh(Rectg(0,0,1,1),"hmax"=>0.1)
+pt,pe = initmesh("squareg","hmax"=>0.2)
 
-force(x) = force(x[2],x[3])
+force(x) = force(x[2]/2-0.5,x[3]/2-0.5)
 force(x,y) = Chain((35/13)*(y-y^2)+(10/13)*(x-x^2),(-25/26)*(2y-1)*(2x-1))
 
 UV = solveelastic(force.(pt),TensorField(pe,0))
@@ -205,7 +215,7 @@ elementresiduals(UV)+edgeresiduals(UV)
 
 # eigen modes
 K,M = assembleelastic(f,μ,λ)
-w,D = geneigsolve(K,M,10,:SR)
+w,D = geneigsolve((K,M),10,:SR)
 
 # Chapter 12
 
@@ -224,6 +234,7 @@ function channel_bc(pe) # inflow and outflow boundary conditions
     return ins,out
 end
 ns = solvenavierstokes(pt,pe,channel_bc(pe)...,0.001,range(0,1,101))
+streamplot(ns(101),0.05..0.45,0.05..0.35,gridsize=(63,63)) # hmax 0.017
 
 # Chapter 13
 
@@ -269,7 +280,7 @@ function scatter_bc(in,ω=2π/1)
     TensorField(pe(e[fixed]),gvals)
 end
 κ = scatter_ic(sd)
-ef = Cartan.edgefacets(FaceBundle(pt))
+ef = edges(FaceBundle(pt))
 bc = scatter_bc(ef)
 ξ = solvemaxwell(κ,bc)
 ξ = solvemaxwell(scatter_ic_bc(sd,pe)...)
@@ -277,9 +288,9 @@ bc = scatter_bc(ef)
 # Chapter 14
 
 pt,pe = initmesh(Rectg(0,0,1,1),"hmax"=>0.25)
-force(x) = 2π*π*sin(π*x[2])*sin(π*y[3])
-forse = interp(discontinuous(force.(FaceBundle(pt))))
-solvepoissonDIPG(forse,-1,9) # α = SIPG parameter, β = penalty parameter
+fun(x) = 2π*π*sin(π*x[2])*sin(π*x[3])
+force = interp(discontinuous(fun(FaceBundle(pt))))
+solvepoissonDIPG(force,1,9,-1) # c, β = penalty parameter, α = SIPG parameter
 #dpt = discontinuous(pt)
 #forse = interp(discontinuous(means(force.(pt))))
 

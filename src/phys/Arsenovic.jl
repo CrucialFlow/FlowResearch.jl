@@ -12,6 +12,8 @@ k = !K
 
 # Plane Waves
 
+W = Submanifol(D"1,1,1,0")
+
 bm(x::LocalTensor) = bm(fiber(x))
 bm(x::Chain{V,G}) where {V,G} = Chain{Submanifold(D"1,1,1,0"),G}(value(x))
 bm(x::Spinor) = Spinor{Submanifold(D"1,1,1,0")}(value(x))
@@ -20,7 +22,6 @@ bm(x::CoSpinor) = CoSpinor{Submanifold(D"1,1,1,0")}(value(x))
 up(x) =  !(x+Λ(Manifold(x)).v1)
 
 function make_x(v23_N, v23_bounds, v1_N, v1_bounds, v4_N, v4_bounds;V=S"-+++")
-    D = Λ(V)
     x1_range = range(-v1_bounds, v1_bounds, v1_N)
     x2_range = range(-v23_bounds, v23_bounds, v23_N)
     x3_range = range(-v23_bounds, v23_bounds, v23_N)

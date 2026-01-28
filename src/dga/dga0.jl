@@ -1,31 +1,19 @@
 
-# utility
-
-function myplot(x,lw::Int=10;args...)
-    fig = lines(x;colormap=:greys,linewidth=lw,args...)
-    lines!(x;color=:black,linestyle=:dash,args...)
-    return fig
-end
-function myplot!(x,lw::Int=10;args...)
-    lines!(x;colormap=:greys,linewidth=lw,args...)
-    lines!(x;color=:black,linestyle=:dash,args...)
-end
-
 # plane curves
 
 t = TensorField(0:0.01:4*pi)
 lin = Chain.(cos(t)*t,sin(t)*11+t)
-fig = myplot(lin,rasterize=2)
+fig = graylines(lin,10,rasterize=2)
 scaledarrows!(lin,unitframe(lin),gridsize=50)
 save("lin1.pdf",fig)
-save("lin2.pdf",myplot(arclength(lin),rasterize=2))
-save("lin3.pdf",myplot(speed(lin),rasterize=2))
-save("lin4.pdf",myplot(curvature(lin),rasterize=2))
-save("lin5.pdf",myplot(planecurve(t),rasterize=2))
-save("lin6.pdf",myplot(planecurve(cos(t)*t),rasterize=2))
-save("lin8.pdf",myplot(planecurve(cos(t)-t*sin(t)),rasterize=2))
+save("lin2.pdf",graylines(arclength(lin),10,rasterize=2))
+save("lin3.pdf",graylines(speed(lin),10,rasterize=2))
+save("lin4.pdf",graylines(curvature(lin),10,rasterize=2))
+save("lin5.pdf",graylines(planecurve(t),10,rasterize=2))
+save("lin6.pdf",graylines(planecurve(cos(t)*t),10,rasterize=2))
+save("lin8.pdf",graylines(planecurve(cos(t)-t*sin(t)),10,rasterize=2))
 t = TensorField(0:0.001:4*pi)
-save("lin7.pdf",myplot(planecurve(cos(t*t)*t),rasterize=2))
+save("lin7.pdf",graylines(planecurve(cos(t*t)*t),10,rasterize=2))
 
 # Lorenz
 
@@ -43,28 +31,28 @@ vf = Lorenz2(10.0,60.0,8/3).(p)
 save("lor1.pdf",streamplot(vf,gridsize=(10,10),colormap=:grays,rasterize=3))
 x0 = Chain(10.0,10.0,10.0)
 sol = odesolve(Lorenz(10.0,60.0,8/3),x0,2*pi,15,3,4)
-save("lor2.pdf",myplot(rescal2.(sol),2,rasterize=4))
+save("lor2.pdf",graylines(rescal2.(sol),2,rasterize=4))
 
 # Riemann sphere
 
 pts = TensorField(-2*pi:0.0001:2*pi)
 @basis S"∞+++"
 f(t) = (↓(exp(π*t*((3/7)*v12+v∞3))>>>↑(v1+v2+v3)))
-save("explin1.pdf",myplot(V(2,3,4).(f.(pts)),2,rasterize=3))
+save("explin1.pdf",graylines(V(2,3,4).(f.(pts)),2,rasterize=3))
 @basis S"∞∅+++"
 f(t) = (↓(exp(π*t*((3/7)*v12+v∞3))>>>↑(v1+v2+v3)))
 rescal(x) = Chain(x[1],x[2],x[3]/10)
 out = V(3,4,5).(vector.(f.(pts)))
-save("explin2.pdf",myplot(rescal.(out),2,rasterize=3))
+save("explin2.pdf",graylines(rescal.(out),2,rasterize=3))
 
 @basis S"∞+++"
 f(t) = ↓(exp(t*v∞*(sin(3t)*3v1+cos(2t)*7v2-sin(5t)*4v3)/2)>>>↑(v1+v2-v3))
-save("explin3.pdf",myplot(V(2,3,4).(f.(pts)),2,rasterize=3))
+save("explin3.pdf",graylines(V(2,3,4).(f.(pts)),2,rasterize=3))
 
 
 @basis S"∞+++"
 f(t) = ↓(exp(t*(v12+0.07v∞*(sin(3t)*3v1+cos(2t)*7v2-sin(5t)*4v3)/2))>>>↑(v1+v2-v3))
-save("explin4.pdf",myplot(V(2,3,4).(f.(pts)),2,rasterize=3))
+save("explin4.pdf",graylines(V(2,3,4).(f.(pts)),2,rasterize=3))
 
 # bivector
 
@@ -167,10 +155,10 @@ torcoef = secondkind(tormet);
 solg = geosolve(torcoef,Chain(1.0,1.0),Chain(1.0,sqrt(2)),10π,7,1,4)
 @basis MetricTensor([1 1; 1 1]) # abstract non-Euclidean V
 solm = TensorField(tormet(solg),Chain{V}.(value.(fiber(solg))))
-save("torgeo1.pdf",myplot(solg,3,rasterize=1))
-save("torgeo2.pdf",myplot(torus.(solg),3,rasterize=3))
-fig = myplot(arclength(solg),3,rasterize=2)
-myplot!(arclength(solm),3,rasterize=2)
+save("torgeo1.pdf",graylines(solg,3,rasterize=1))
+save("torgeo2.pdf",graylines(torus.(solg),3,rasterize=3))
+fig = graylines(arclength(solg),3,rasterize=2)
+graylines!(arclength(solm),3,rasterize=2)
 save("torgeo3.pdf",fig)
 
 # klein
@@ -193,9 +181,9 @@ kle = klein.(KleinParameter(100,100))
 klemet = surfacemetric(kle);
 klecoef = secondkind(klemet);
 solg = geosolve(klecoef,Chain(1.0,1.0),Chain(1.0,2.0),2pi,7,1,4);
-save("klegeo1.pdf",myplot(solg,3,rasterize=5))
-save("klegeo2.pdf",myplot(rescal3.(klein.(solg)),3,rasterize=5))
-save("klegeo22.pdf",myplot(klein.(solg),3,rasterize=5))
+save("klegeo1.pdf",graylines(solg,3,rasterize=5))
+save("klegeo2.pdf",graylines(rescal3.(klein.(solg)),3,rasterize=5))
+save("klegeo22.pdf",graylines(klein.(solg),3,rasterize=5))
 
 kle = klein.(KleinParameter(60,60))
 klemet = surfacemetric(kle);
@@ -212,7 +200,7 @@ z2 = geosolve(halfplane,Chain(1.0,0.1),Chain(1.0,2.0),10pi,7)
 z3 = geosolve(halfplane,Chain(1.0,0.5),Chain(1.0,2.0),10pi,7)
 z4 = geosolve(halfplane,Chain(1.0,1.0),Chain(1.0,1.0),10pi,7)
 z5 = geosolve(halfplane,Chain(1.0,1.0),Chain(1.0,1.5),10pi,7)
-fig = myplot(z1,rasterize=2); myplot!(z2,rasterize=2); myplot!(z3,rasterize=2); myplot!(z4,rasterize=2); myplot!(z5,rasterize=2)
+fig = graylines(z1,10,rasterize=2); graylines!(z2,10,rasterize=2); graylines!(z3,10,rasterize=2); graylines!(z4,10,rasterize=2); graylines!(z5,10,rasterize=2)
 save("halfplane.pdf",fig)
 
 # hopf
