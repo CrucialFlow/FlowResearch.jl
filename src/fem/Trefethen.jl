@@ -4,6 +4,8 @@ using Grassmann, Cartan
 using Makie, GLMakie
 using FFTW, ToeplitzMatrices, SparseArrays
 
+#= Chapter 1 =#
+
 # Program 1 # fourth order difference convergence
 
 fun(N) = exp(sin(pts(N)))
@@ -14,32 +16,18 @@ function program1(N)
     (D-D')/(2π/N)
 end
 
-dprime(N) = program1(N)*fun(N)
-lines(dprime(240))
-lines(dprime(240)-cos(pts(240))*fun(240))
+dprime(x) = program1(length(x))*x
+lines(dprime(fun(240)))
 
-error(N) = fiber(maximum(abs(dprime(N)-cos(pts(N))*fun(N))))
-errorlog(x) = TensorField(log10.(x),log10.(error.(x)))
-scatter(errorlog((2).^(3:12)))
+error(N,grad) = grad(fun(N[1])) - cos(pts(N[1]))*fun(N[1])
+lines(error(240,dprime))
+lines(error(24,gradient))
+lines!(error(24,gradient_rfft))
 
-
-fun(N) = exp(sin(pts(N)))
-pts(N=24,h=2π/N) = TensorField((h*(1:N)).-π)
-error(N) = abs(gradient(fun(N))-cos(pts(N))*fun(N))
-error_fft(N) = abs(gradient(fun(N))-cos(pts(N))*fun(N))
-errorlog(x) = TensorField(log10.(x),log10.(fiber.(maximum.(error.(x)))))
-errorlog_fft(x) = TensorField(log10.(x),log10.(fiber.(maximum.(error_fft.(x)))))
-
-scatter(errorlog((2).^(3:12)))
-
-fun(N) = exp(sin(pts(N)))
-pts(N=24,h=2pi/N) = TensorField((h*(1:N)).-pi)
-error(N) = abs(gradient(fun(N))-cos(pts(N))*fun(N))
-error_fft(N) = abs(gradient_fft(fun(N))-cos(pts(N))*fun(N))
-errorlog(x,y) = TensorField(log10.(x),log10.(fiber.(maximum.(y))))
-graylines(errorlog((2).^(2:12),error.((2).^(2:12))))
-graylines!(errorlog((2).^(0:12),error_fft.((2).^(0:12))))
-
+errorlog(x,grad) = TensorField(log10.(x),log10.(fiber.(maximum.(abs.(error.(x,grad))))))
+scatter(errorlog((2).^(2:12),gradient))
+scatter(errorlog((2).^(0:12),gradient_rfft))
+scatter(errorlog((2).^(1:12),dprime))
 
 # infinite-like operator
 
@@ -51,61 +39,43 @@ infinite(N) = Toeplitz(cols(N),-cols(N))
 fun(N) = exp(sin(pts(N)))
 pts(N=24,h=2π/N) = TensorField((h*(1:N)).-π)
 
-cols(N,h=2π/N) = vcat(0,0.5*(-1).^(1:N-1).*cot.((1:N-1)*h/2))
-spectral(N) = Toeplitz(cols(N),-cols(N))
-
-dprime(N,fun) = spectral(N)*fun(N)
+dprime(N,fun) = gradient_toeplitz(fun(N))
 lines(dprime(240,fun))
-lines(dprime(240,fun)-cos(pts(240))*fun(240))
 
-error(N) = spectral(N,h)*exp(sin(pts(N))) - cos(pts(N))*exp(sin(pts(N)))
-errorlog(x) = TensorField(log10.(x),log10.(error.(maximum.(x))))
-scatter(errorlog(2:2:100))
+error(N,grad) = grad(fun(N[1])) - cos(pts(N[1]))*fun(N[1])
+lines(error(240,gradient_toeplitz))
 
+errorlog(x,grad) = TensorField(log10.(x),log10.(fiber.(maximum.(abs.(error.(x,grad))))))
+scatter(errorlog(2:2:100,gradient_toeplitz))
 
-error(N) = fiber(maximum(abs(dprime(N,fun)-cos(pts(N))*fun(N))))
-errorlog(x) = TensorField(log10.(x),log10.(error.(x)))
-scatter(errorlog(2:2:100))
+#= Chapter 2 =#
 
 # Program 3 # band-limited interpolation
 
-function program3(fun,h=1,xmax=10)
-    x = -xmax:h:xmax # computational grid
-    xx = TensorField(-xmax-h/20:h/10:xmax+h/20) # plot grid
-    v = fun.(x)
-    p = zeros(length(xx))
-    for i ∈ 1:length(x)
-        p += v[i]*fiber(sin(π*(xx-x[i])/h)/(π*(xx-x[i])/h))
-    end
-    return TensorField(xx,p)
-end
+t = TensorField(-11:1.0:11)
 
-program3(x->iszero(x[1]))
-program3(x->abs(x[1])≤3)
-program3(x->max(0,1-abs(x[1])/3))
+lines(resample_sinc(iszero(t),221))
+scatter!(iszero(t))
 
-lines(program3(x->iszero(x[1])))
-scatter!(resample(program3(x->iszero(x[1])),21)) # n = 2xmax/h+1
+lines(resample_sinc((x->abs(x[1])≤3).(t),221))
+scatter!((x->abs(x[1])≤3).(t))
 
-lines(program3(x->abs(x[1])≤3))
-scatter!(resample(program3(x->abs(x[1])≤3),21)) # n = 2xmax/h+1
+lines(resample_sinc(max(0,1-abs(t)/3)))
+scatter!(max(0,1-abs(t)/3))
 
-lines(program3(x->max(0,1-abs(x[1])/3)))
-scatter!(resample(program3(x->max(0,1-abs(x[1])/3)),21)) # n = 2xmax/h+1
+#= Chapter 3 =#
 
-t = TensorField(-10:1:10)
-tt = TensorField(-10.5:0.01:10.5)
-lines(sin(π*tt)/(π*tt))
-scatter!(spike(t))
-
+t = TensorField(range(-pi,3pi,2*24+1)) # coarse grid
+tt = TensorField(range(-pi,3pi,1000)) # fine grid
+lines(mysinc(tt)) # mysinc interpolation
+scatter!(mysinc(t)) # periodic sinc hat
+lines(mysinc(t)) # line interpolation
+scatter!(mysinc(t)) # periodic sinc hat
 
 # Program 4 # periodic spectral differentiation
 
-pts(N=24,h=2π/N) = TensorField(h*(1:N))
-
-cols(N,h=2π/N) = vcat(0,0.5*(-1).^(1:N-1).*cot.((1:N-1)*h/2))
-spectral(N) = Toeplitz(cols(N),-cols(N))
 dprime(N,fun) = derivetoeplitz(N)*fun(N)
+pts(N=24,h=2π/N) = TensorField(h*(1:N))
 
 hat(N) = max(0,1-abs(pts(N)-π)/2)
 
@@ -170,8 +140,6 @@ linegraph(leapfrog(fun,128,8,0.15))
 alteration(leapfrog(fun),0.01,lines,lines!)
 linegraph(leapfrog(fun))
 
-
-
 function my_leapfrog(fun;N=128,tmax=8,tplot=0.15,t=0,o=3)
     x = pts(N)
     dt = (2π/N)/4
@@ -184,6 +152,8 @@ function my_leapfrog(fun;N=128,tmax=8,tplot=0.15,t=0,o=3)
 end
 
 wireframe(graph(my_leapfrog(fun)))
+
+#= Chapter 4 =#
 
 # Project 7 # accuracy of periodic spectral differentiation
 
@@ -241,17 +211,41 @@ program8(24)
 program8(30)
 program8(36)
 
+#= Chapter 5 =#
+
 # Program 9 # Chebyshev interpolation
 
-equispace(N) = TensorField(2(0:N)/N.-1)
-chebyshev(N) = TensorField(cos.(π*(0:N)/N))
+x = TensorField(range(-1,1,17))
+xx = TensorField(Chebyshev(17))
 
-function program9(x,N=16)
-    xx = TensorField(-1.01:0.005:1.01)
-    u = 1/(1+16x^2)
-    uu = 1/(1+16xx^2)
-    # todo
-end
+lines(resample_lagrange(1/(1+16x^2),401))
+scatter!(1/(1+16x^2))
+
+lines(resample_lagrange(1/(1+16xx^2),401))
+scatter!(1/(1+16xx^2))
+
+tt = TensorField(range(-1,1,401));
+maximum(abs.(fiber(1/(1+16tt^2)) - fiber(resample_lagrange(1/(1+16xx^2),401))))
+
+# Program 10
+
+x = TensorField(LagrangeWeights(range(-1,1,17)))
+xx = TensorField(Chebyshev(17))
+Z = Complex(complexify(TensorField(ProductSpace{2}(-1.4:0.02:1.4,-1.12:0.02:1.12))))
+
+lines(resample_roots(x,401))
+scatter!(0x)
+
+lines(resample_roots(xx,401))
+scatter!(0xx)
+
+contour(rootspolynomial(x,Z),levels=10.0.^(-4:0))
+scatter!(x+0im)
+
+contour(rootspolynomial(xx,Z),levels=10.0.^(-4:0))
+scatter!(xx+0im)
+
+#= Chapter 6 =#
 
 # cheb.m
 
@@ -314,15 +308,21 @@ scatter(TensorField(1:50,log.(fun.(1:50,2))))
 scatter(TensorField(1:50,log.(fun.(1:50,3))))
 scatter(TensorField(1:50,log.(fun.(1:50,4))))
 
+#= Chapter 7 =#
+
 # Program 13
 
 x = TensorField(Chebyshev(17)) # domain
-lines(solvedirichlet(helmholtz(x),exp(4x))) # Dirichlet invert
+u = solvedirichlet(helmholtz(x),exp(4x)) # Dirichlet invert
+lines(resample_lagrange(u,201))
+scatter!(u)
 
 # Program 14
 
 u0 = TensorField(Chebyshev(17),zeros(17)) # initialize
-lines(solveiteration(helmholtz(u0),exp,u0,solvedirichlet))
+u = solveiteration(helmholtz(u0),exp,u0,solvedirichlet)
+lines(resample_lagrange(u,201))
+scatter!(u)
 
 # Program 15
 
@@ -333,23 +333,39 @@ function solve_eig(N=36)
     [TensorField(x,vcat(0,U[:,j],0)) for j ∈ 1:N-2]
 end
 
-lines(se[30])
+function show_eig(x,n=201)
+    out = lines(resample_lagrange(x,n))
+    scatter!(x)
+    return out
+end
+
+se = solve_eig(36)
+show_eig(se[30],201)
+show_eig(se[25],201)
+show_eig(se[20],201)
+show_eig(se[15],201)
+show_eig(se[10],201)
+show_eig(se[5],201)
 
 # Program 16
 
 fun(x) = 10sin(8x[1]*(x[2]-1))
-x = Chebyshev(50)
+x = Chebyshev(25)
 XY = TensorField(ProductSpace{2}(x,x))
 u = solvedirichlet(helmholtz(XY),fun.(XY))
 linegraph(graph(u),u)
+ur = resample_lagrange(u,51,51)
+linegraph(graph(ur),ur)
 
 # Program 17
 
-x = Chebyshev(50)
+x = Chebyshev(25)
 XY = TensorField(ProductSpace{2}(x,x))
 
 fun(x) = exp(-10*((x[2]-1)^2+(x[1]-0.5)^2))
-contour(solvedirichlet(helmholtz(XY,9),fun.(XY)))
+u = solvedirichlet(helmholtz(XY,9),fun.(XY))
+contour(u)
+contour(resample_lagrange(u,61,61))
 
 function solvehelmholtzwave(u0,k,t)
     data = zeros(Complex{Float64},size(u0)...,length(t))
@@ -361,6 +377,8 @@ function solvehelmholtzwave(u0,k,t)
 end
 
 hw = solvehelmholtzwave(hh,9,0:0.01:1)
+
+#= Chapter 8 =#
 
 # chebfft
 
@@ -392,6 +410,25 @@ function gradient_chebrfft(v)
     w[N+1] = sum((-1).^(ii.+1).*(ii.^2).*U[ii.+1])/N .+ 0.5N*(-1)^(N+1)*U[N+1]
     return TensorField(x,w)
 end
+
+# Program 18
+
+xx = TensorField(-1.01:0.01:1.01)
+lines(exp(xx)*sin(5xx))
+
+function program18(N)
+    x = TensorField(Chebyshev(N))
+    error = gradient_chebyshevfft(exp(x)*sin(5x)) - exp(x)*(sin(5x)+5cos(5x))
+end
+
+lines(program18(10))
+lines(program18(20))
+
+x = TensorField(Chebyshev(20))
+y = exp(x)*sin(5x)
+lines(gradient_chebyshev(y))
+lines(gradient_chebyshev(y) - gradient_chebyshevfft(y))
+lines(gradient_chebyshevfft(y))
 
 # Program 19
 
@@ -431,7 +468,7 @@ X,Y = split(XY)
 ex = exp(-40((X-0.4)^2+Y^2))
 lf = leapfrog(ex,41,4,1/30)
 linegraph(lf[:,:,2])
-
+linegraph(resample_lagrange(lf[:,:,2],33,33))
 
 x = Chebyshev(31)
 XYZ = TensorField(ProductSpace{3}(x,x,x))
@@ -440,7 +477,16 @@ ex = exp(-40((X-0.4)^2+Y^2+Z^2))
 lf = leapfrog(ex,41,4,1/30)
 contour(lf[:,:,2],alpha=0.1)
 
+#= Chapter 9 =#
 
+# Program 21
+
+x = TensorField((2π/42)*(1:42))
+D2 = derivetoeplitz2(42)
+evs(q) = eigvals(-D2 + 2q*Diagonal(fiber(cos(2x))))
+out = hcat(evs.(0:0.2:15)...)
+lines(out[1,:])
+[lines!(out[i,:]) for i ∈ 2:11]
 
 # Program 22
 
@@ -457,11 +503,96 @@ XY = TensorField(ProductSpace{2}(x,x))
 L = helmholtz(XY)
 V = eigvecs(-L)
 contour(reshapedirichlet(XY,V[:,1]))
+contour(resample_lagrange(reshapedirichlet(XY,V[:,1]),101,101))
 
 y = x[2:end-1]
 X,Y = split(TensorField(ProductSpace(y,y)))
 perturb = Diagonal(vec(fiber(exp(20*(X-Y-1)))))
 
+# Program 24
+
+function daviesosc(c,L=6,N=71)
+    x = Chebyshev(range(-L,L,N))
+    D = ChebyshevMatrix(x)
+    (-D^2)[2:end-1,2:end-1] + c*Diagonal(x[2:end-1].^2)
+end
+function pseudospectra(A,Z)
+    In = I(size(A)[1])
+    sigmin = zeros(size(Z)...)
+    for j ∈ 1:size(Z)[2], i ∈ 1:size(Z)[1]
+        sigmin[i,j] = minimum(svd(fiber(Z)[i,j]*In-A).S)
+    end
+    return TensorField(Z,sigmin)
+end
+
+A = daviesosc(1+3im,6,71)
+Z = Complex(complexify(TensorField(ProductSpace(0:2:50,0:2:40))))
+contour(pseudospectra(A,Z),levels=10.0.^(-4:0.5:-0.5))
+
+#= Chapter 10 =#
+
+# Program 25
+
+t = TensorField(range(0,2pi,201))
+z = exp(im*t)
+r = z-1
+
+# Adams-Bashforth
+lines(r/1)
+lines!(2r/(3-1/z))
+lines!(12r/(23-16/z+5/z^2))
+
+# Adams-Moulton
+lines(12r/(5z+8-1/z))
+lines!(24r/(9z+19-5/z+1/z^2))
+lines!(720r/(251z+646-264/z+106/z^2-19/z^3))
+dd = 1-1/z
+lines!(dd/(1-dd/2-dd^2/12-dd^3/24-19dd^4/720-3dd^5/160))
+
+# Backward differentiation
+r = dd
+lines(r)
+for i ∈ 2:6
+    r += (dd^i)/i
+    lines!(r)
+end
+
+# Runge-Kutta
+
+W = TensorField(z,zeros(Complex{Float64},length(z)))
+for i ∈ 2:length(z)
+    W[i] = W[i-1]-(1+W[i-1]-fiber(z)[i])
+end
+lines(W)
+W = TensorField(z,zeros(Complex{Float64},length(z)))
+for i ∈ 2:length(z)
+    W[i] = W[i-1]-(1+W[i-1]+0.5W[i-1]^2-fiber(z)[i]^2)/(1+W[i-1])
+end
+lines!(W)
+W = TensorField(z,zeros(Complex{Float64},length(z)))
+for i ∈ 2:length(z)
+    W[i] = W[i-1]-(1+W[i-1]+0.5W[i-1]^2+W[i-1]^3/6-fiber(z)[i]^3)/(1+W[i-1]+W[i-1]^2/2)
+end
+lines!(W)
+W = TensorField(z,zeros(Complex{Float64},length(z)))
+for i ∈ 2:length(z)
+    W[i] = W[i-1]-(1+W[i-1]+0.5W[i-1]^2+W[i-1]^3/6+W[i-1]^4/24-fiber(z)[i]^4)/(1+W[i-1]+W[i-1]^2/2+W[i-1]^3/6)
+end
+lines!(W)
+
+# Program 26
+
+x = TensorField(Chebyshev(61))
+D2 = (ChebyshevMatrix(x)^2)[2:end-1,2:end-1]
+Lam,V = eigen(D2)
+lines(TensorField(log10.(1:59),log10.(-reverse(Lam))))
+
+v4N = TensorField(x,[0; V[:,end-Int(60/4)+2]; 0])
+lines(resample_lagrange(-v4N,201))
+scatter!(-v4N)
+
+vN = TensorField(x,[0;V[:,2];0])
+scatter(abs(vN))
 
 # Program 27
 
@@ -516,12 +647,12 @@ function solvekdv(u0,tmax=0.006,o=4)
     odesolve(ic,ExplicitIntegrator{o}(tplot/plotgap,plotgap))
 end
 
-# Program 28
+#= Chapter 11 =#
 
+# Program 28
 
 toeplitz2(N,h=2π/N) = vcat(-π^2/(3*h^2)-1/6,0.5*(-1).^(2:N)./sin.((1:N-1)*h/2).^2)
 spectral(N,h=2pi/N,c=toeplitz2(N,h)) = Toeplitz(c,c)
-
 
 function polarlaplacian(N=13,M=21)
     r = Chebyshev(2N)
@@ -532,7 +663,6 @@ function polarlaplacian(N=13,M=21)
     M2 = Int((M-1)/2); Z = zeros(M2,M2)
     kron(I(M-1),D1+R*E1)+kron([Z I;I Z],D2+R*E2)+kron(D2t,R^2)
 end
-
 
 function reshapedisk(Vi,N,M)
     t = TorusParameter(M)
@@ -553,6 +683,21 @@ diskparam = base(TorusParameter(41))⊕base(TensorField(Chebyshev(32)[17:end]))
 fun(x) = -x[2]^2*sin(x[1]/2)^4 + sin(6x[1])*cos(x[1]/2)^2
 pd = solvepolardirichlet(L,fun.(diskparam))
 
+#= Chapter 12 =#
+
+# Program 30
+
+fun1(x) = abs(integrate_chebyshev(abs(x)^3) - 0.5)
+fun2(x) = abs(integrate_chebyshev(exp(-x^-2)) -2*(exp(-1)+sqrt(π)*(erf(1)-1)))
+fun3(x) = abs(integrate_chebyshev(1/(1+x^2)) - π/2)
+fun4(x) = abs(integrate_chebyshev(x^10) - 2/11)
+
+myfun(fun,N=51) = TensorField(2:N,[fun(TensorField(Chebyshev(i))) for i ∈ 2:N])
+
+lines(log(myfun(fun1)))
+lines(log(myfun(fun2)))
+lines(log(myfun(fun3)))
+lines(bound(log(myfun(fun4)),50))
 
 # clencurt
 
@@ -625,12 +770,40 @@ end
 gam = inv(integrate_haar(gamcirc(-11,16),zz))
 surface(bound(abs(gam),5))
 
+#= Chapter 13 =#
+
+# Program 32
+
+x = TensorField(Chebyshev(17)) # domain
+u = solvedirichlet(helmholtz(x),exp(4x))+(x+1)/2 # u(1) = 1
+lines(resample_lagrange(u,201))
+scatter!(u)
+
 # Program 33
+
+function myoperator(x)
+    D = ChebyshevMatrix(x)
+    D2 = D^2
+    D2[1,:] = D[1,:]
+    D2[1:end-1,1:end-1]
+end
+
+leftneumann(L,u) = TensorField(u,vcat(L\vcat(0,fiber(u)[2:end-1]),0))
+
+x = TensorField(Chebyshev(17)) # domain
+u = leftneumann(myoperator(x),exp(4x))
+lines(resample_lagrange(u,201))
+scatter!(u)
+exact = (exp(4x)-4exp(-4)*(x-1) - exp(4))/16
+maximum(abs(u-exact))
+
+# Program 34
 
 function allencahn(u0,eps=0.01,tplot=2,tmax=50,n=1)
     x = TensorField(points(u0))
     dt = min(0.01,50length(u0)^-4/eps)
     D2 = ChebyshevMatrix(u0)^2
+    D2[[1,end],:] .= 0
     plotgap = round(tplot/dt)
     allencahn(v) = (eps*D2)*(v-x) + v - v^3
     ic = InitialCondition(allencahn,u0,tmax)
@@ -643,18 +816,95 @@ x = TensorField(Chebyshev(21))
 u0 = 0.53x + 0.47sin(-1.5pi*x)
 surface(bound(allencahn(u0),0.2))
 
+# Program 35
+
+function acbc(x)
+    fiber(x)[1] = -1
+    fiber(x)[end] = 1 + sin(point(x)/5)^2
+    return x
+end
+function allencahn(u0,eps=0.01,tplot=2,tmax=50,n=1)
+    x = TensorField(points(u0))
+    dt = min(0.01,50length(u0)^-4/eps)
+    D2 = ChebyshevMatrix(u0)^2
+    plotgap = round(tplot/dt)
+    allencahn(v) = (eps*D2)*(v-x) + v - v^3
+    ic = InitialCondition(allencahn,u0,tmax)
+    out = odesolve(ic,ExplicitIntegrator{n}(tplot/plotgap,plotgap),acbc)
+    x,t = split(points(out))
+    TensorField(ProductSpace(x,t/10),fiber(out)/10)
+end
+
+x = TensorField(Chebyshev(21))
+u0 = 0.53x + 0.47sin(-1.5pi*x)
+surface(bound(allencahn(u0),0.2))
+
+# Program 36
+
+x = Chebyshev(25)
+XY = TensorField(ProductSpace{2}(x,x))
+X,Y = split(XY)
+D2 = ChebyshevMatrix(x)^2
+L = kron(I(25),D2) + kron(D2,I(25))
+b = findall(x -> isone(abs(x[1])) | isone(abs(x[2])),vec(fiber(XY)))
+L[b,:] .= 0
+L[b,b] .= I(length(b))
+bx = findall(x -> isone(x[1]),vec(fiber(XY)))
+by = findall(x -> isone(x[2]) & (x[1]<0),vec(fiber(XY)))
+rhs = zeros(25^2)
+rhs[bx] = 0.2.*sin.(3π.*fiber(Y)[bx])
+rhs[by] = sin.(π.*fiber(X)[by]).^4
+u = TensorField(XY,reshape(L\vec(fiber(rhs)),size(XY)))
+surface(u)
+u(0,0)
+wireframe(resample_lagrange(u,51,51))
+
+# Program 37
+
+x = TensorField(range(-3,3,50))
+D2x = (π/3)^2*derivetoeplitz2(50)
+y = Chebyshev(16)
+Dy = ChebyshevMatrix(y)
+D2y = Dy^2
+BC = Dy[[1,16],[1,16]]\Dy[[1,16],2:15]
+XY = TensorField(ProductSpace{2}(points(x),y))
+X,Y = split(XY)
+dt = 5/(50+15^2)
+plotgap = Int(round(2/dt))
+dt = 2/plotgap
+vv = exp(-8((X+1.5)^2+Y^2))
+vvold = exp(-8((X+dt+1.5)^2+Y^2))
+
+fprime(v) = TensorField(base(fiber(v)),D2x*fiber(fiber(v)) + fiber(fiber(v))*D2y)
+function wavebc(v)
+    fiber(fiber(v))[:,[1,16]] .= fiber(fiber(v))[:,2:end-1]*transpose(BC)
+    return v
+end
+
+function leapfrog(vv,vvold,tmax=4)
+    lc = LeapCondition(fprime,vvold,vv,2/plotgap,tmax)
+    odesolve(lc,LeapIntegrator{2}(plotgap),wavebc)
+end
+
+lf = leapfrog(vv,vvold,4)
+surface(lf[:,:,1])
+
+#= Chapter 14 =#
+
 # Program 38
 
 x = TensorField(Chebyshev(24))
-lines(solvedirichlet(biharmonic(x),exp(-0.1x^2)))
+u = solvedirichlet(biharmonic(x),exp(-0.1x^2))
+lines(resample_lagrange(u,201))
+scatter!(u)
 
 # Program 39
-
 
 x = Chebyshev(18)
 XY = TensorField(ProductSpace{2}(x,x))
 B = eigvecs(biharmonic(XY))
 contour(reshapedirichlet(XY,B[:,1]))
+contour(resample_lagrange(reshapedirichlet(XY,B[:,1]),201,201))
 
 # Program 40
 
@@ -668,5 +918,4 @@ function orrsommerfeld(v,R=5772)
     B = D2 - I(N-2)
     return A,B
 end
-
 
