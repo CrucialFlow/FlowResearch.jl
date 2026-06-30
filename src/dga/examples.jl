@@ -160,3 +160,17 @@ fun(x) = Chain(x[1]^4*exp(x[2]),exp(x[1])*cos(x[2]),sin(x[1])+x[2]^2*x[3])
 streamplot(unitball(),fun.(unitball());gridsize=(11,11,11))
 
 
+# psuedo spectral
+
+myrw(x,h) = localfiber(x).*rw(points(localfiber(x)),h)
+rw(k,t) = (restwavemultiplier.(k,t).-1)./t
+
+x = TensorField(range(0,1,100))
+ic = IC(FlowApprox(myrw,1.0),dct(ini))
+fsol = odesolve(ic,ExplicitIntegrator{1}(0.01))
+t = TensorField(0:0.01:1)
+
+wireframe(TensorField(base(x)⊕base(t),idct(fiber(fsol),1)))
+
+
+

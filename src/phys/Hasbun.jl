@@ -304,6 +304,125 @@ end
 
 drive_power(m=0.5,k=0.5,F0=0.5,ωmin=0.01,ωmax=3,n=200,cmin=0.2,cmax=1)
 
+# Chapter 4
+
+# inter_spr1
+
+function inter_spr1(;m1=1,m2=2,k0=0.5,x10=1,x20=-1,v10=0.02,v20=0.04)
+    μ = m1*m2/(m1+m2) # reduced mass
+    xcm0 = (m1*x10+m2*x20)/(m1+m2) # initial center of mass
+    vcm = (m1*v10+m2*v20)/(m1+m2) # center of mass speed
+    xr0,vr0 = x20-x10,v20-v10 # relative coordinate / speed
+    om = sqrt(k0/μ) # frequency
+    τ = 2pi/om # period
+    A,B = vr0/om,xr0 # amplitudes
+    tmax = 2τ # time range
+    t = TensorField(0:τ/50:tmax)
+    xr = A*sin(om*t)+B*cos(om*t) # solution
+    xcm = xcm0 + vcm*t # cm position vs time
+    x1 = xcm-m2*xr/(m1+m2) # mass position vs time
+    x2 = xcm+m1*xr/(m1+m2)
+    lines([xcm,x1,x2])
+end
+
+# eigen
+
+M = TensorOperator(Chain(1,-1),Chain(-1,1))
+P = eigvecs(M)
+L = eigvals(M)
+P/P
+P\M*P
+
+# inter_spr2
+
+function inter_spr2(;m=1,k0=1.0,k=10.0,x10=1,x20=0)
+    xs,xd = (x10+x20)/2,(x10-x20)/2
+    om1,om2 = sqrt(k/m),sqrt((k+2k0)/m)
+    om = min(om1,om2)
+    τ = 2pi/om # period
+    tmax = 20τ # time range
+    t = TensorField(0:τ/50:tmax)
+    x1 = xs*cos(om1*t)+xd*cos(om2*t)
+    x2 = xs*cos(om1*t)-xd*cos(om2*t)
+    #tom1,tom2 = t*(om1+om2)/2,t*(om1-om2)/2
+    #x3 = x10*cos(tom1)*cos(tom2) + x20*sin(tom1)*sin(tom2)
+    #x4 = x10*sin(tom1)*sin(tom2) + x20*cos(tom1)*cos(tom2)
+    lines([x1,x2])
+end
+
+# pend0
+
+function pend0(;w0=1,th0=0,thmax=90,imax=10,tol=1e-5,N=25)
+    a3 = w0^2/6
+    dth = (thmax-th0)/N
+    th = [th0+(j-1)*dth for j ∈ 1:N]
+    A1 = zeros(N)
+    for j ∈ 1:N
+        x = th[j]-1 # initial guess
+        xn = 999
+        f = 999
+        i = 0
+        while (abs(xn-x) ≥tol) & (f != 0) & (i <imax)
+            x = xn
+            f = x + a3*x^3/(27a3*x^2-32w0^2)-th[j]
+            fp = 1+3a3*x^2/(27a3*x^2-32w0^2) - 54a3^2*x^4/((27a3*x^2-32w0^2)^2)
+            xn = x - f/fp
+            i += 1
+        end
+        A1[j] = xn
+    end
+    TensorField(th,A1)
+end
+
+# pend1
+
+function pend1(;thmax=90,N=100)
+    dth = thmax/N
+    th = TensorField(0:dth:thmax)
+    m = sin(th*2pi/360/2)^2
+    y1 = 1/sqrt(1-(th*2pi/360)^2/8)
+    y2 = 2ellipke(m)/pi
+    lines([y1,y2])
+end
+
+# pend2
+
+function pend2(;w0=1)
+    cf = 2pi/360
+    τ0 = 2pi/w0
+    tmax = 4τ0
+    th = 90 # initial amplitude in degrees
+    thr = th*cf # initial angle in radians
+    ic1 = Chain(thr,0.0)
+    ic = InitialCondition(Flow(pend2_der(w0),tmax),ic1)
+    th2 = odesolve(ic,ExplicitIntegrator{4}(1e-4))
+    om = w0*sqrt(1-thr^2/8)
+    a3 = w0^2/6
+    A1 = thr
+    A3 = a3*A1^3/(27*a3*A1^2-32*w0^2)
+    t = TensorField(points(th2))
+    th1 = thr*cos(om*t) + A3*cos(3om*t)
+    th0 = thr*cos(w0*t) # the SHO case
+    lines([th0,th1,getindex.(th2,1)]/cf)
+end
+
+pend2_der(w0) = x -> Chain(x[2],-w0^2*sin(x[1]))
+
+# molec
+
+function molec(;tmax=2,xb=3/2,xi=0.2)
+    ic1 = Chain(xb+xi,0.0)
+    ic = InitialCondition(Flow(molec_der(),tmax),ic1)
+    x2 = odesolve(ic,ExplicitIntegrator{4}(1e-4))
+    t = TensorField(points(x2))
+    A1 = (-1+sqrt(1+xi*32/9))*9/16
+    x1 = xb+A1*cos(2pi*t)+4A1^2*(3-cos(4pi*t))/9
+    x0 =xb+xi*cos(2pi*t)
+    lines([x0,x1,getindex.(x2,1)])
+end
+
+molec_der() = x -> Chain(x[2],81pi^2*(3/(x[1]^4)-2/x[1]^3)/8)
+
 # Chapter 5
 
 # gradient_ex
@@ -353,5 +472,60 @@ streamplot(df)
 surface(leaf(f,0.4,3))
 streamplot(leaf(dxy,0.4,3))
 contour!(leaf(f,0.4,3),levels=-0.3:0.1:0.3)
+
+# curl_ex
+
+function curl_ex(n,j=1;vmin=-1,vmax=1)
+    xmax,ymax,zmax = vmax,vmax,vmax
+    xmin,ymin,zmin = vmin,vmin,vmin
+    vs = 0.3
+    xs,ys,zs = vs,vs,vs
+    N = (vmax-vmin)/vs
+    m = Int(round(N/2+1))
+    zm = zmin+(m-1)*zs
+    XYZ = TensorField(ProductSpace{S"3"}(xmin:xs:xmax,ymin:ys:ymax,zmin:zs:zmax))
+    x,y,z = split(XYZ)
+    f = if n == 1
+        Chain.(-y,x,0)
+    elseif n == 2
+        Chain.(x*z,-y^2,2x^2*y)
+    elseif n == 3
+        Chain.(y^2,2*x*y+z^2,2y*z)
+    elseif n == 4
+        Chain.(x*y,y*z,z*x)
+    elseif n == 5
+        Chain.(x^2*y,y^2*z,z^2*x)
+    end
+    if j == 1
+        streamplot(f)
+    elseif j == 2
+        Chain.(x[:,:,m],y[:,:,m])
+    elseif j == 3
+        cav2 = curl(Chain.(getindex.(f[:,:,m],1),getindex.(f[:,:,m],2)))
+    elseif j == 4
+        streamplot(curl(f))
+    end
+end
+
+# Chapter 6
+
+# parabola
+
+function parabola(;x0=1,z0=1,xmin=-3,xmax=3,xs=0.1)
+    x = TensorField(xmin+x0:xs:xmax+x0)
+    zt,zb = 0,0
+    out = nothing
+    for e ∈ -0.5:-0.5:-1.5
+        z = z0+(x-x0)^2/4/e
+        e == -0.5 ? (out = lines(z)) : lines!(z)
+    end
+    return out
+end
+
+# projectile
+
+function projectile()
+end
+
 
 
