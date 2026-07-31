@@ -172,5 +172,11 @@ t = TensorField(0:0.01:1)
 
 wireframe(TensorField(base(x)⊕base(t),idct(fiber(fsol),1)))
 
+#  Ajna.jl
 
+
+using Grassmann, Cartan
+using ColorTypes, ImageInTerminal
+
+Cartan.raster([Chain(1,1,1)∧Chain(1,-1,2)])
 

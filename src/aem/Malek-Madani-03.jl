@@ -20,21 +20,21 @@ newTleft = Tfleft
 
 # Project C
 
-picardintegral(f) = x -> fiber(x)[1] + integral(f(x))
-picardintegral(f,t) = x -> fiber(x)[1] + integral(f(x,t))
+picardintegral(f) = (x -> fiber(x)[1] + integral(f(x)))∘localfiber
+picardintegral(f,t) = (x -> fiber(x)[1] + integral(f(x,t)))∘localfiber
 
 t = TensorField(0:0.01:1)
 fprime(x,t) = sin(t)-2x
 pic = picardintegral(fprime,t)
-lines(fixedpoint(pic,1+8t,3))
-lines(fixedpoint(pic,1+8t,6))
-lines(fixedpoint(pic,1+8t,9))
-lines(fixedpoint(pic,1+8t,12))
-lines(fixedpoint(pic,1+8t,16))
-lines(fixedpoint(pic,1+8t))
+lines(orbit(pic,1+8t,3))
+lines(orbit(pic,1+8t,6))
+lines(orbit(pic,1+8t,9))
+lines(orbit(pic,1+8t,12))
+lines(orbit(pic,1+8t,16))
+lines(orbit(pic,1+8t))
 
 fprime(x) = -x*x
 pic = picardintegral(fprime)
-lines(fixedpoint(pic,1+0t))
+lines(orbit(pic,1+0t))
 
 

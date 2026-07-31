@@ -62,7 +62,7 @@ avg(x) = TensorField(x,[avg(fiber(x),i) for i ∈ 1:length(x)])
 
 function laxwave(ic,dt,c=1)
     D0dt = (c*dt)*D0(ic)
-    fixedpoint(x -> avg(x) - D0dt*x,ic,range(0,9dt,10))
+    orbit(x -> avg(x) - D0dt*x,ic,range(0,9dt,10))
 end
 
 surface(laxwave(icfun.(x),dt))
@@ -72,7 +72,7 @@ surface(laxwave(icfun.(x),dt))
 function laxwendroffwave(ic,dt,c=1)
     D0dt = (dt*c)*D0(ic)
     fun(x) = x - D0dt*x + ((c*dt)^2)/2*gradient_forw(gradient_back(x))
-    fixedpoint(fun,ic,range(0,9dt,10))
+    orbit(fun,ic,range(0,9dt,10))
 end
 
 surface(laxwendroffwave(icfun.(x),dt))
@@ -85,7 +85,7 @@ function maccormackwave(ic,dt,c=1)
         du = (-c*dt)*gradient_forw(x)
         x+(du+(-c*dt)*gradient_back(x+du))/2
     end
-    fixedpoint(fun,ic,range(0,9dt,10))
+    orbit(fun,ic,range(0,9dt,10))
 end
 
 surface(maccormackwave(icfun.(x),dt))
@@ -99,7 +99,7 @@ function warmingbeamwave(ic,dt,c=1)
         du = ((dx-c*dt)/2)*gradient_back(x)
         x+(-c*dt)*gradient_back(x+du)
     end
-    fixedpoint(fun,ic,range(0,9dt,10))
+    orbit(fun,ic,range(0,9dt,10))
 end
 
 surface(warmingbeamwave(icfun.(x),dt))
@@ -117,13 +117,13 @@ surface(explicitwave(fun,dt))
 
 function implicitwave(ic,dt)
     ID0 = I+dt*D0(ic)
-    fixedpoint(x -> ID0\x,ic,range(0,9dt,10))
+    orbit(x -> ID0\x,ic,range(0,9dt,10))
 end
 function implicitwave(ic,dt,α)
     D0x = D0(ic)
     ID0 = I+(α*dt)*D0x
     D0a = D0x*((1-α)*dt)
-    fixedpoint(x -> ID0\(x-D0a*x),ic,range(0,9dt,10))
+    orbit(x -> ID0\(x-D0a*x),ic,range(0,9dt,10))
 end
 
 # implicit delta form
@@ -164,7 +164,7 @@ end
 function implicitwave2(ic,dt)
     d = Cartan.centraldiff_fast_points(ic)
     D0x = D0(ic)
-    fixedpoint(x -> (I+D0u(dt*x,d))\(x-D0x*((dt*x/2)^2)),ic,range(0,9dt,10))
+    orbit(x -> (I+D0u(dt*x,d))\(x-D0x*((dt*x/2)^2)),ic,range(0,9dt,10))
 end
 
 surface(implicitwave2(icfun.(x),Δt(x,1.8)))
@@ -351,10 +351,10 @@ function solveelliptic(P=CircularArc{6,21}(),k=1000;M∞=0.5,p∞=1,ρ∞=1,γ=1
     ϕ,bc = V∞*getindex.(XY,1),V∞*ps.(x)
     if !line
         fun1(u) = solveelliptic_pointsweep(u,initbc(u),matx,maty,bc)
-        fixedpoint(fun1,ϕ,k)
+        orbit(fun1,ϕ,k)
     elseif !adi
         fun2(u) = solveelliptic_vertical_sweep(u,initbc(u),matx,maty,bc,V∞*x)
-        fixedpoint(fun2,ϕ,k)
+        orbit(fun2,ϕ,k)
     else
         function fun3(U)
             n,u = point(U),fiber(U)
@@ -365,7 +365,7 @@ function solveelliptic(P=CircularArc{6,21}(),k=1000;M∞=0.5,p∞=1,ρ∞=1,γ=1
             end
             return (n+1) ↦ u
         end
-        fiber(fixedpoint(fun3,0↦ϕ,k))
+        fiber(orbit(fun3,0↦ϕ,k))
     end
 end
 function solveelliptic_point_jacobi(P=CircularArc{6,21}(),k=1000;M∞=0.5,p∞=1,ρ∞=1,γ=1.4,n=51)
@@ -439,10 +439,10 @@ function solveelliptic3(P=CircularArc{6,21}(),k=1000;M∞=0.5,p∞=1,ρ∞=1,γ=
     ϕ,bc = V∞*getindex.(XYZ,1),fiber(fiberproduct(TensorField(x,V∞*ps.(x)),TensorField(y,y.≤3),*))
     if !line
         fun1(u) = solveelliptic_pointsweep(u,initbc(u),matx,maty,matz,bc)
-        fixedpoint(fun1,ϕ,k)
+        orbit(fun1,ϕ,k)
     else
         fun2(u) = solveelliptic_vertical_sweep(u,initbc(u),matx,maty,matz,bc,V∞*x)
-        fixedpoint(fun2,ϕ,k)
+        orbit(fun2,ϕ,k)
     end
 end
 
@@ -479,13 +479,13 @@ surface(out)
 
 function implicitparabolic(ic,dt)
     IDpm = I-dt*Dpm(ic)
-    fixedpoint(x -> IDpm\x,ic,0:dt:10dt)
+    orbit(x -> IDpm\x,ic,0:dt:10dt)
 end
 function implicitparabolic(ic,dt,α)
     Dpmx = Dpm(ic)
     IDpm = I-Dpmx*(α*dt)
     Dpma = I+Dpmx*((1-α)*dt)
-    fixedpoint(x -> IDpm\(Dpma*x),ic,0:dt:10dt)
+    orbit(x -> IDpm\(Dpma*x),ic,0:dt:10dt)
 end
 
 mp = implicitparabolic(hat(x,1),1e9)
@@ -624,10 +624,10 @@ function solvetsd(P=CircularArc{6,21}(),k=400;M∞=0.908,V∞=1,ρ∞=1,γ=1.4,n
     ϕ,bc1 = TensorField(XY,1.0),V∞*ps.(x)
     if !line
         fun1(u) = solvetsd_pointsweep(u,initbc(u),matx,maty,bc1,A,dx)
-        fixedpoint(fun1,ϕ,k)
+        orbit(fun1,ϕ,k)
     else
         fun2(u) = solvetsd_vertical_sweep(u,initbc(u),matx,maty,bc1,bc2,A,dx)
-        fixedpoint(fun2,ϕ,k)
+        orbit(fun2,ϕ,k)
     end
 end
 
@@ -721,10 +721,10 @@ function solvetsd3(P=CircularArc{6,21}(),k=400;M∞=0.908,V∞=1,ρ∞=1,γ=1.4,
     ϕ,bc1 = TensorField(XYZ,1.0),fiber(fiberproduct(TensorField(x,V∞*ps.(x)),TensorField(y,y.≤3),*))
     if !line
         fun1(u) = solvetsd_pointsweep(u,initbc(u),matx,maty,matz,bc1,A,dx)
-        fixedpoint(fun1,ϕ,k)
+        orbit(fun1,ϕ,k)
     else
         fun2(u) = solvetsd_vertical_sweep(u,initbc(u),matx,maty,matz,bc1,bc2,A,dx)
-        fixedpoint(fun2,ϕ,k)
+        orbit(fun2,ϕ,k)
     end
 end
 
@@ -815,10 +815,10 @@ function solvefp(P=CircularArc{6,21}(),k=400;M∞=0.5,p∞=1,ρ∞=1,γ=1.4,n=51
     bc = fiber(ϕ)[:,end]
     if !line
         fun1(u) = solvefp_pointsweep(u,initbc(u),matx,maty,bc1,A,dx)
-        fixedpoint(fun1,ϕ,k)
+        orbit(fun1,ϕ,k)
     elseif !adi
         fun2(u) = solvefp_vertical_sweep(u,initbc(u),iJ,dxy,bc,T11,T12,T21,T22)
-        fixedpoint(fun2,ϕ,k)
+        orbit(fun2,ϕ,k)
     else
         function fun3(U)
             n,u = point(U),fiber(U)
@@ -829,7 +829,7 @@ function solvefp(P=CircularArc{6,21}(),k=400;M∞=0.5,p∞=1,ρ∞=1,γ=1.4,n=51
             end
             return (n+1) ↦ u
         end
-        fiber(fixedpoint(fun3,0↦ϕ,k))
+        fiber(orbit(fun3,0↦ϕ,k))
     end
 end
 
@@ -867,7 +867,7 @@ p0 = heaviside(x-1)+1
 function laxwendroffwave(ic,dt,c=1)
     D0dt = (dt*c)*D0(ic)
     fun(x) = x - D0dt*x + ((c*dt)^2)/2*gradient_forw(gradient_back(x))
-    fixedpoint(fun,ic,range(0,9dt,10))
+    orbit(fun,ic,range(0,9dt,10))
 end
 
 surface(laxwendroffwave(icfun.(x),dt))
@@ -879,7 +879,7 @@ function maccormackeuler1(ic,dt)
         du = (-dt)*gradient_forw(eulerF(x))
         x+(du+(-dt)*gradient_back(eulerF(x+du)))/2
     end
-    fixedpoint(fun,ic,0:dt:100dt)
+    orbit(fun,ic,0:dt:100dt)
 end
 
 surface(maccormackeuler1(euler_ic(ρ0,p0,0x),dt))
@@ -893,7 +893,7 @@ function warmingbeamwave(ic,dt,c=1)
         du = ((dx-c*dt)/2)*gradient_back(x)
         x+(-c*dt)*gradient_back(x+du)
     end
-    fixedpoint(fun,ic,range(0,9dt,10))
+    orbit(fun,ic,range(0,9dt,10))
 end
 
 surface(warmingbeamwave(icfun.(x),dt))
