@@ -46,7 +46,7 @@ surface(g.(D))
 
 D2 = OpenParameter(LinRange(0,1,30),LinRange(0,2π,120))
 h(x) = x[1]*Chain(cos(x[2]),sin(x[2]))
-mesh(f.(D))
+wireframe(h.(D2))
 
 f1(x) = exp(x[1]^2+x[2]^2)
 f2(x) = exp(x[1]^2)*x[1]

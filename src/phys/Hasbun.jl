@@ -5,25 +5,32 @@
 
 # ho1.m
 
+mass_spring(k,C,F0,ω,m) = x -> Chain(x[2],(F0*sin(ω*point(x))-k*x[1]-C*x[2])/m)
 function init_mass_spring(;tmax=1,k=1000,m=5,C=0,E=0,ω=0,x0=0.1,v0=0,t0=0)
-    k # 1000 # spring constant
-    m # 5.0 # bob mass
-    C # 0.0 # damping coefficient
-    E # 0.0 # driving force magnitude
-    ω # 0.0 # driving force frequency
-    x0 # 0.1 # initial position
-    v0 # 0.0 # initial velocity
-    t0 # 0.0 # initial time
     F0 = -k*x0-C*v0+E*sin(ω*t0) # initial force
     a0 = F0/m # initial acceleration
     InitialCondition(mass_spring(k,C,F0,ω,m),t0↦Chain(x0,v0),tmax)
 end
-
-mass_spring(k,C,F0,ω,m) = x -> Chain(x[2],(F0*sin(ω*point(x))-k*x[1]-C*x[2])/m)
 function solve_mass_spring(;n=100,tmax=1,k=1000,m=5,C=0,E=0,ω=0,x0=0.1,v0=0,t0=0)
-    ic = init_mass_spring(;tmax,k,m,C,E,ω,x0,v0,t0)
+    ic = init_mass_spring(;tmax=tmax,k=k,m=m,C=C,E=E,ω=ω,x0=x0,v0=v0,t0=t0)
     getindex.(odesolve(ic,ExplicitIntegrator{4}(tmax/n)),1)
 end
+function solve_mass_spring(n=100,t0=0,tmax=1,k=1000,m=5,C=0,E=0,ω=0,x0=0.1,v0=0)
+    solve_mass_spring(;n=n,tmax=tmax,k=k,m=m,C=C,E=E,ω=ω,x0=x0,v0=v0,t0=t0)
+end
+
+gtkplot(lines,solve_mass_spring,
+    "points: n" => 10:10:1000,
+    "initial time: t0" => 0:0.1:19.9,
+    "final time: tmax" => 0.1:0.1:20,
+    "spring constant: k" => 1:1000,
+    "bob mass: m" => 0.1:0.1:10,
+    "damping coefficient: C" => 0:0.1:1,
+    "driving force magnitude: E" => 0:0.1:1,
+    "driving force frequency: ω" => 0:0.1:1,
+    "initial position: x0" => 0:0.1:1,
+    "initial velocity: v0" => 0:0.1:1)
+
 
 solve_mass_spring(n=100,tmax=1,k=1000,m=5,C=0,E=0,ω=0,x0=0.1,v0=0,t0=0)
 solve_mass_spring(n=100,tmax=10,k=1,m=1,C=0,E=0,ω=0,x0=1,v0=0,t0=0)
@@ -33,11 +40,6 @@ solve_mass_spring(n=200,tmax=20,k=1,m=1,C=0.5,E=0.1,ω=0.8,x0=1,v0=0,t0=0)
 # ho2.m
 
 function init_free_fall(;tmax=20,g=9.8,m=1,C=0.05,y0=0,v0=110,flag=false)
-    g # gravity
-    m # mass
-    C # drag coefficient
-    y0 # initial height
-    v0 # initial velocity
     t0 = 0 # initial time
     F = flag ? -m*g-C*v0*abs(v0) : -m*g-C*v0 # initial force
     vt = flag ? sqrt(m*g/C) : abs(m*g/C) # terminal velocity
@@ -50,8 +52,21 @@ function free_fall(g,m,C,flag)
 end
 function solve_free_fall(;n=200,tmax=20,g=9.8,m=1,C=0.05,y0=0,v0=110,flag=false)
     ic = init_free_fall(;tmax,g,m,C,y0,v0,flag)
-    getindex.(odesolve(ic,ExplicitIntegrator{4}(tmax/n)))
+    getindex.(odesolve(ic,ExplicitIntegrator{4}(tmax/n)),1)
 end
+function solve_free_fall(n=200,tmax=20,g=9.8,m=1,C=0.05,y0=0,v0=110,flag=false)
+    solve_free_fall(;n=n,tmax=tmax,g=g,m=m,C=C,y0=y0,v0=v0,flag=flag)
+end
+
+gtkplot(lines,solve_free_fall,
+    "points: n" => 200 => 10:10:1000,
+    "final time: tmax" => 20 => 0.1:0.1:20,
+    "gravity: g" => 9.8 => 1:0.1:10,
+    "mass: m" => 1 => 1:0.1:10,
+    "drag coefficient: C" => 0.05 => 0:0.01:0.1,
+    "initial height: y0" => 0 => 0:0.1:10,
+    "initial velocity: v0" => 110 => 0:110,
+    "flag" => false)
 
 solve_free_fall(n=200,tmax=20,g=9.8,m=1,C=0.05,y0=0,v0=110,flag=false)
 solve_free_fall(n=200,tmax=10,g=9.8,m=1,C=0.05,y0=0,v0=110,flag=true)
@@ -65,20 +80,23 @@ function init_acceleration(;m=1,F0=1,ω=3)
     a = F0*cos(ω*t)/m
 end
 
-function solve_position(;m=1,F0=1,ω=3,x0=0,v0=0.05)
+function solve_position(m=1,F0=1,ω=3,x0=0,v0=0.05)
     x0 + integral(v0+integral(init_acceleration(;m,F0,ω)))
 end
 
-solve_position(m=1,F0=1,ω=3,x0=0,v0=0.05)
+gtkplot(lines,solve_position,
+    "mass: m" => 1,
+    "force amplitude: F0" => 1,
+    "force angular frequency: ω" => 3,
+    "initial position: x0" => 0,
+    "initial velocity: v0" => 0.05)
+
+lines(solve_position())
 
 # fofx.m
 
-function fofx(;m=1,k=0.01,x0=0,v0=0.5)
-    m # mass
-    k # spring constant
+function fofx(m=1,k=0.01,x0=0,v0=0.5)
     ω = sqrt(k/m) # natural frequency
-    x0 # initial position
-    v0 # initial velocity
     t = TensorField(0:0.05:2π/ω)
     E0 = (m/2)*v0^2 # total initial energy
     x = sqrt(2*E0/k)*sin(ω*t) # position vs time
@@ -88,80 +106,106 @@ function fofx(;m=1,k=0.01,x0=0,v0=0.5)
     KE = (m/2)*v^2 # kinetic energy
     E = PE + KE
     F = -k*x # force
-    display(lines(Chain.(x,PE)))
-    lines!(Chain.(x,KE))
-    lines!(Chain.(x,E))
-    lines!(Chain.(x,F))
+    Chain.(x,PE),Chain.(x,KE),Chain.(x,E),Chain.(x,F)
 end
+function myplot(PE,KE,E,F)
+    out = lines(PE)
+    lines!(KE)
+    lines!(E)
+    lines!(F)
+    return out
+end
+
+gtkplot(myplot,fofx,
+    "mass: m" => 1,
+    "spring constant: k" => 0.01,
+    "initial position: x0" => 0,
+    "initial velocity: v0" => 0.5)
+
+myplot(fofx()...)
 
 # fofv.m
 
-function fofv(;g=9.8,m=1,C=0.05,y0=10,v0=20,NPTS=100,tmax=4.5)
-    g # gravity
-    m # mass
-    C # drag coefficient
+function fofv(g=9.8,m=1,C=0.05,y0=10,v0=20,NPTS=100,tmax=4.5)
     C < 1e-3 && (C=1e-3)
-    y0 # initial height
-    v0 # initial velocity
-    NPTS # number of  points
-    tmax
     tz = v0/g + sqrt((v0/g)^2+2*y0/g)
     f(x) = y0-m*(g*t+(m*g/C+v0)*(exp(-C*t/m)-1))/C
     t = TensorField(0:tmax/NPTS:tmax)
     y = y0-m*(g*t+(m*g/C+v0)*(exp(-C*t/m)-1))/C
     v = (m*g/C+v0)*exp(-C*t/m)-m*g/C
     a = -g-C*v/m
-    display(lines(y))
+    return (y,v,a)
+end
+function myplot(y,v,a)
+    out = lines(y)
     lines!(v)
     lines!(a)
+    return out
 end
+
+gtkplot(myplot,fofv,
+    "gravity: g" => 9.8,
+    "mass: m" => 1,
+    "drag coefficient: C" => 0.05,
+    "initial height: y0" => 10,
+    "initial velocity: v0" => 20,
+    "points: NPTS" => 100,
+    "final time: tmax" => 4.5)
+
+myplot(fofv()...)
 
 # Chapter 3
 
 # xoft.m
 
-function xoft(;n=100,τ=2,r=2)
-    n # number of points
-    τ # period
-    r # radius
+function xoft(n=100,τ=2,r=2)
     t = TensorField(0:2/n:2τ)
     x = r*cos(2π*t/τ)
 end
 
-lines(xoft(n=100,τ=2,r=2))
+gtkplot(lines,xoft,
+    "points: n" => 100,
+    "period: τ" => 2,
+    "radius: r" => 2)
+
+lines(xoft())
 
 # Example 3.1
 
-lines(tangent(xoft(n=100,τ=2,r=2)))
+gtkplot(lines,tangent∘xoft,
+    "points: n" => 100,
+    "period: τ" => 2,
+    "radius: r" => 2)
+
+lines(tangent(xoft()))
 
 # Example 3.2
 
-function v_and_f(;xb=3/2,vmin=-4/27,xmin=0.5,n=100)
+function v_and_f(xb=3/2,vmin=-4/27,xmin=0.5,n=100)
     xmax = 5xb
     x = TensorField(xmin:2/n:2xmax)
     V = 1/x^3 - 1/x^2
     F = 3/x^4 - 2/x^3
-    st = lines(V)
-    fig,ax,plt = st
+    return bound(V,-1.5vmin),bound(F,-1.5vmin)
+end
+
+function myplot(V,F)
+    out = lines(V)
     lines!(F)
-    ax.limits = ((1,7),(-0.2,0.2))
-    st
+    return out
 end
 
-function v_and_f(;xb=3/2,vmin=-4/27,xmin=0.5,n=100)
-    xmax = 5xb
-    x = TensorField(xmin:2/n:2xmax)
-    V = 1/x^3 - 1/x^2
-    F = 3/x^4 - 2/x^3
-    return V,F
-end
+gtkplot(myplot,v_and_f,
+    "bond length: xb" => 3/2,
+    "potential min: vmin" => -4/27,
+    "position min: xmin" => 0.5,
+    "points: n" => 100)
 
-lines(bound(V,0.2))
-lines!(bound(F,0.2))
+myplot(v_and_f()...)
 
 # over_crit_damp
 
-function over_crit_damp(;m=0.05,k=1,c=0.5,x0=1,v0=5,tmax=2,n=100)
+function over_crit_damp(m=0.05,k=1,c=0.5,x0=1,v0=5,tmax=2,n=100)
     γ = c/2/m
     desc = γ^2-k/m
     desc ≤ 0 && throw("γ needs to be smaller")
@@ -177,13 +221,26 @@ function over_crit_damp(;m=0.05,k=1,c=0.5,x0=1,v0=5,tmax=2,n=100)
     return (xo,xc)
 end
 
-xo,xc = over_crit_damp(m=0.05,k=1,c=0.5,x0=1,v0=5,tmax=2,n=100)
-lines(xo)
-lines!(xc)
+function myplot(xo,xc)
+    out = lines(xo)
+    lines!(xc)
+    return out
+end
+
+gtkplot(myplot,over_crit_damp,
+    "mass: m" => 0.05,
+    "spring constant: k" => 1,
+    "drag coefficient: c" => 0.5,
+    "initial position: x0" => 1,
+    "initial velocity: v0" => 5,
+    "final time: tmax" => 2,
+    "points: n" => 100)
+
+myplot(over_crit_damp()...)
 
 # under_damp
 
-function under_damp(;m=0.05,k=1,c=0.08,x0=1,v0=5,tmax=5,n=100)
+function under_damp(m=0.05,k=1,c=0.08,x0=1,v0=5,tmax=5,n=100)
     γ = c/2/m
     ω0 = sqrt(k/m)
     desc = ω0^2-γ^2
@@ -196,7 +253,16 @@ function under_damp(;m=0.05,k=1,c=0.08,x0=1,v0=5,tmax=5,n=100)
     x = xe*sin(ω*t+θ)
 end
 
-under_damp(m=0.05,k=1,c=0.08,x0=1,v0=5,tmax=5,n=100)
+gtkplot(lines,under_damp,
+    "mass: m" => 0.05,
+    "spring constant: k" => 1,
+    "drag coefficient: c" => 0.08,
+    "initial position: x0" => 1,
+    "initial velocity: v0" => 5,
+    "final time: tmax" => 5,
+    "points: n" => 100)
+
+myplot(under_damp()...)
 
 # dive_amp
 
@@ -308,7 +374,7 @@ drive_power(m=0.5,k=0.5,F0=0.5,ωmin=0.01,ωmax=3,n=200,cmin=0.2,cmax=1)
 
 # inter_spr1
 
-function inter_spr1(;m1=1,m2=2,k0=0.5,x10=1,x20=-1,v10=0.02,v20=0.04)
+function inter_spr1(m1=1,m2=2,k0=0.5,x10=1,x20=-1,v10=0.02,v20=0.04)
     μ = m1*m2/(m1+m2) # reduced mass
     xcm0 = (m1*x10+m2*x20)/(m1+m2) # initial center of mass
     vcm = (m1*v10+m2*v20)/(m1+m2) # center of mass speed
@@ -322,8 +388,26 @@ function inter_spr1(;m1=1,m2=2,k0=0.5,x10=1,x20=-1,v10=0.02,v20=0.04)
     xcm = xcm0 + vcm*t # cm position vs time
     x1 = xcm-m2*xr/(m1+m2) # mass position vs time
     x2 = xcm+m1*xr/(m1+m2)
-    lines([xcm,x1,x2])
+    return xcm,x1,x2
 end
+
+function myplot(xcm,x1,x2)
+    out = lines(xcm)
+    lines!(x1)
+    lines!(x2)
+    return out
+end
+
+gtkplot(myplot,inter_spr1,
+    "mass: m1" => 1,
+    "mass: m2" => 2,
+    "spring constant: k0" => 0.5,
+    "initial position: x10" => 1,
+    "initial position: x20" => -1,
+    "initial velocity: v10" => 0.02,
+    "initial velocity: v20" => 0.04)
+
+myplot(inter_spr1()...)
 
 # eigen
 
@@ -335,7 +419,7 @@ P\M*P
 
 # inter_spr2
 
-function inter_spr2(;m=1,k0=1.0,k=10.0,x10=1,x20=0)
+function inter_spr2(m=1,k0=1.0,k=10.0,x10=1,x20=0)
     xs,xd = (x10+x20)/2,(x10-x20)/2
     om1,om2 = sqrt(k/m),sqrt((k+2k0)/m)
     om = min(om1,om2)
@@ -347,17 +431,32 @@ function inter_spr2(;m=1,k0=1.0,k=10.0,x10=1,x20=0)
     #tom1,tom2 = t*(om1+om2)/2,t*(om1-om2)/2
     #x3 = x10*cos(tom1)*cos(tom2) + x20*sin(tom1)*sin(tom2)
     #x4 = x10*sin(tom1)*sin(tom2) + x20*cos(tom1)*cos(tom2)
-    lines([x1,x2])
+    x1,x2
 end
+
+function myplot(x1,x2)
+    out = lines(x1)
+    lines!(x2)
+    return out
+end
+
+gtkplot(myplot,inter_spr2,
+    "mass: m" => 1,
+    "spring constant: k0" => 1,
+    "spring constant: k" => 10,
+    "initial position: x10" => 1,
+    "initial position: x20" => 0)
+
+myplot(inter_spr2()...)
 
 # pend0
 
-function pend0(;w0=1,th0=0,thmax=90,imax=10,tol=1e-5,N=25)
+function pend0(w0=1,th0=0,thmax=90,imax=10,tol=1e-5,N=25)
     a3 = w0^2/6
     dth = (thmax-th0)/N
     th = [th0+(j-1)*dth for j ∈ 1:N]
-    A1 = zeros(N)
-    for j ∈ 1:N
+    A1 = zeros(Int(N))
+    for j ∈ 1:Int(N)
         x = th[j]-1 # initial guess
         xn = 999
         f = 999
@@ -374,20 +473,42 @@ function pend0(;w0=1,th0=0,thmax=90,imax=10,tol=1e-5,N=25)
     TensorField(th,A1)
 end
 
+gtkplot(lines,pend0,
+    "w0" => 1,
+    "th0" => 0,
+    "thmax" => 90,
+    "imax" => 10,
+    "tol" => 1e-5,
+    "N" => 25 => 1:50)
+
+lines(pend0())
+
 # pend1
 
-function pend1(;thmax=90,N=100)
+function pend1(thmax=90,N=100)
     dth = thmax/N
     th = TensorField(0:dth:thmax)
     m = sin(th*2pi/360/2)^2
     y1 = 1/sqrt(1-(th*2pi/360)^2/8)
-    y2 = 2ellipke(m)/pi
-    lines([y1,y2])
+    y2 = 2ellipk(m)/pi
+    return y1,y2
 end
+
+function myplot(y1,y2)
+    out = lines(y1)
+    lines!(y2)
+    return out
+end
+
+gtkplot(myplot,pend1,
+    "thmax" => 90,
+    "N" => 100)
+
+myplot(pend1()...)
 
 # pend2
 
-function pend2(;w0=1)
+function pend2(w0=1)
     cf = 2pi/360
     τ0 = 2pi/w0
     tmax = 4τ0
@@ -403,14 +524,25 @@ function pend2(;w0=1)
     t = TensorField(points(th2))
     th1 = thr*cos(om*t) + A3*cos(3om*t)
     th0 = thr*cos(w0*t) # the SHO case
-    lines([th0,th1,getindex.(th2,1)]/cf)
+    (th0,th1,getindex.(th2,1))./cf
 end
 
 pend2_der(w0) = x -> Chain(x[2],-w0^2*sin(x[1]))
 
+function myplot(th0,th1,th2)
+    out = lines(th0)
+    lines!(th1)
+    lines!(th2)
+    return out
+end
+
+gtkplot(myplot,pend2,"frequency: w0" => 1)
+
+myplot(pend2()...)
+
 # molec
 
-function molec(;tmax=2,xb=3/2,xi=0.2)
+function molec(tmax=2,xb=3/2,xi=0.2)
     ic1 = Chain(xb+xi,0.0)
     ic = InitialCondition(Flow(molec_der(),tmax),ic1)
     x2 = odesolve(ic,ExplicitIntegrator{4}(1e-4))
@@ -418,10 +550,24 @@ function molec(;tmax=2,xb=3/2,xi=0.2)
     A1 = (-1+sqrt(1+xi*32/9))*9/16
     x1 = xb+A1*cos(2pi*t)+4A1^2*(3-cos(4pi*t))/9
     x0 =xb+xi*cos(2pi*t)
-    lines([x0,x1,getindex.(x2,1)])
+    return x0,x1,getindex.(x2,1)
 end
 
 molec_der() = x -> Chain(x[2],81pi^2*(3/(x[1]^4)-2/x[1]^3)/8)
+
+function myplot(x0,x1,x2)
+    out = lines(x0)
+    lines!(x1)
+    lines!(x2)
+    return out
+end
+
+gtkplot(myplot,molec,
+    "final time: tmax" => 2,
+    "equilibrium position: xb" => 3/2,
+    "initial offset position: xi" => 0.2)
+
+myplot(molec()...)
 
 # Chapter 5
 
